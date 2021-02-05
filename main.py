@@ -1,6 +1,15 @@
 import sys
 import math
 
+class Env:
+    Max_Yaw_Angle = 16
+    Max_Acceleration = 650
+
+def debug(msg):
+    # Write an action using print
+    # To debug: print("Debug messages...", file=sys.stderr, flush=True)
+    print(f"Debug: {msg}", file=sys.stderr, flush=True)
+
 # Auto-generated code below aims at helping you parse
 # the standard input according to the problem statement.
 
@@ -8,6 +17,8 @@ prev_x = None
 prev_y = None
 velocity = None
 thrust = 100
+max_acceleration = 0
+prev_velocity = 0
 
 # game loop
 while True:
@@ -26,7 +37,6 @@ while True:
     prev_x = x
     prev_y = y
 
-
     if velocity > 250 and next_checkpoint_dist < 1000:
         thrust = 0
     elif abs(next_checkpoint_angle) >= 60:
@@ -42,15 +52,3 @@ while True:
     # followed by the power (0 <= thrust <= 100)
     # i.e.: "x y thrust"
     print(f"{str(next_checkpoint_x)} {str(next_checkpoint_y)} {thrust}")
-
-    # Write an action using print
-    # To debug: print("Debug messages...", file=sys.stderr, flush=True)
-    print(f"Debug: velocity {velocity}", file=sys.stderr, flush=True)
-
-    # Write an action using print
-    # To debug: print("Debug messages...", file=sys.stderr, flush=True)
-    print(f"Debug: target {next_checkpoint_x} {next_checkpoint_y}", file=sys.stderr, flush=True)
-
-    print(f"Debug: current {x} {y}", file=sys.stderr, flush=True)
-
-    print(f"Debug: prev {prev_x} {prev_y}", file=sys.stderr, flush=True)
