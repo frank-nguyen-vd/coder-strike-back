@@ -4,6 +4,7 @@ import math
 class Env:
     Max_Yaw_Angle = 16
     Max_Acceleration = 650
+    Max_Velocity = 650
 
 def debug(msg):
     # Write an action using print
@@ -17,8 +18,6 @@ prev_x = None
 prev_y = None
 velocity = None
 thrust = 100
-max_acceleration = 0
-prev_velocity = 0
 
 # game loop
 while True:
