@@ -11,11 +11,16 @@ class Tools:
     def calc_dist(x1, y1, x2, y2):
         return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
-class Param:
-    Max_Yaw_Angle = 16
-    Max_Acceleration = 166.88
-    Max_Speed = 905.10
-    Max_Power = 100
+class GameEnv:
+    Max_Engine_Power = 100
+
+    @staticmethod
+    def calc_acceleration(engine_power, speed):
+        max_acceleration = 1.2 * engine_power
+        acceleration = -0.15 * speed + max_acceleration
+        if acceleration < 0:
+            acceleration = 0
+    
 
 class Position:
     def __init__(self, x=0, y=0):
@@ -108,10 +113,10 @@ while True:
         chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y,
         player_orientation=next_checkpoint_angle)
 
-    power = 50
-    debug(f"power {power} speed {probe.player.speed:.2f} acc {probe.player.acceleration:.2f}")
+    engine_power = 50
+    debug(f"engine_power {engine_power} speed {probe.player.speed:.2f} acc {probe.player.acceleration:.2f}")
 
     # You have to output the target position
-    # followed by the power (0 <= power <= 100)
-    # i.e.: "x y power"
-    print(f"{str(next_checkpoint_x)} {str(next_checkpoint_y)} {power}")
+    # followed by the engine_power (0 <= engine_power <= 100)
+    # i.e.: "x y engine_power"
+    print(f"{str(next_checkpoint_x)} {str(next_checkpoint_y)} {engine_power}")
