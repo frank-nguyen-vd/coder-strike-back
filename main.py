@@ -10,16 +10,22 @@ class Tools:
     @staticmethod
     def calc_dist(x1, y1, x2, y2):
         return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
 class Param:
     Max_Yaw_Angle = 16
-    Max_Acceleration = 556.7067956262937
-    Max_Speed = 1159.1246697400586
+    Max_Acceleration = 166.88
+    Max_Speed = 905.10
     Max_Power = 100
 
 class Position:
-    def __init__(self, x, y):
+    def __init__(self, x=0, y=0):
         self.x = x
         self.y = y        
+
+class CheckPoint:
+    def __init__(self, x, y, radius):
+        self.pos = Position(x, y)
+        self.radius = radius
 
 class Pod:
     def __init__(self, x=None, y=None, orientation=None, dist_to_chkpt=None, speed=None, acceleration=None):
@@ -81,24 +87,9 @@ class Probe:
         if self.player.speed > self.max_speed:
             self.max_speed = self.player.speed
 
-        if self.opponent.speed > self.max_speed:
-            self.max_speed = self.opponent.speed
-        
-        return Param.Max_Power
-
-
     def probe_max_acceleration(self):
         if abs(self.player.acceleration) > self.max_acceleration:
             self.max_acceleration = abs(self.player.acceleration)
-
-        if abs(self.opponent.acceleration) > self.max_acceleration:
-            self.max_acceleration = abs(self.opponent.acceleration)
-        
-        return Param.Max_Power
-
-
-# Auto-generated code below aims at helping you parse
-# the standard input according to the problem statement.
 
 probe = Probe()
 
@@ -117,8 +108,8 @@ while True:
         chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y,
         player_orientation=next_checkpoint_angle)
 
-    power = probe.probe_max_speed()
-    debug(f"max speed {probe.max_speed}")
+    power = 50
+    debug(f"power {power} speed {probe.player.speed:.2f} acc {probe.player.acceleration:.2f}")
 
     # You have to output the target position
     # followed by the power (0 <= power <= 100)
