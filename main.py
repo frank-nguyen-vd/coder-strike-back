@@ -13,7 +13,7 @@ class Tools:
 class Param:
     Max_Yaw_Angle = 16
     Max_Acceleration = 556.7067956262937
-    Max_Velocity = 650
+    Max_Speed = 1159.1246697400586
     Max_Power = 100
 
 class Position:
@@ -117,8 +117,8 @@ while True:
         chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y,
         player_orientation=next_checkpoint_angle)
 
-    power = probe.probe_max_acceleration()
-    debug(f"max acceleration {probe.max_acceleration}")
+    power = probe.probe_max_speed()
+    debug(f"max speed {probe.max_speed}")
 
     # You have to output the target position
     # followed by the power (0 <= power <= 100)
