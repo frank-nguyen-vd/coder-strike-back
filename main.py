@@ -20,6 +20,8 @@ class GameEnv:
         acceleration = -0.15 * speed + max_acceleration
         if acceleration < 0:
             acceleration = 0
+
+        return acceleration
     
 
 class Position:
