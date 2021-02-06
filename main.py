@@ -64,12 +64,36 @@ class Tools:
         return Tools.limit_angle(angle_deg=output)
 
 class Vector:
-    def __init__(self):
-        self.x = None
-        self.y = None
-        self.angle = None
-        self.length = None
+    def __init__(self, x=None, y=None, angle=None, length=None):
+        self.x = x
+        self.y = y
+        self.angle = angle
+        self.length = length
 
+    def __add__(self, other):
+        if isinstance(other, (int, float)):
+            return Vector(self.x + other, self.y + other)
+        elif isinstance(other, Vector):
+            return Vector(self.x + other.x, self.y + other.y)
+        else:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(other, (int, float)):
+            return Vector(self.x - other, self.y - other)
+        elif isinstance(other, Vector):
+            return Vector(self.x - other.x, self.y - other.y)
+        else:
+            return NotImplemented
+
+    def __mul__(self, other):
+        if isinstance(other, (int, float)):
+            return Vector(other * self.x, other * self.y)
+        elif isinstance(other, Vector):
+            return NotImplemented
+        else:
+            return NotImplemented
+         
     def update(self, x=None, y=None, angle=None, length=None, pos1=None, pos2=None):
         if x != None and y != None:
             self.x = x
