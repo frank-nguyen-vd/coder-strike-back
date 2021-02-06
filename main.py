@@ -28,6 +28,10 @@ class Tools:
     def conv_rad_to_deg(angle_rad):
         return angle_rad / math.pi * 180
 
+    @staticmethod
+    def conv_deg_to_rad(angle_deg):
+        return angle_deg / 180 * math.pi
+
 class GameEnv:
     Max_Yaw_Angle = 16
     Max_Engine_Power = 100
