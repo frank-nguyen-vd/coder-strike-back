@@ -189,10 +189,12 @@ class Pod:
         self.engine_power = engine_power
 
     def turn_left(self, angle, engine_power):
-        pass
+        self.next_direction.update(angle=self.orient.angle - angle, length=1)
+        self.engine_power = engine_power
 
     def turn_right(self, angle, engine_power):
-        pass
+        self.next_direction.update(angle=self.orient.angle + angle, length=1)
+        self.engine_power = engine_power
 
     def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):
         self.pos_prev.copy(self.position)
