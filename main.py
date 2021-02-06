@@ -180,16 +180,18 @@ class Pod:
         self.next_direction = self.orient + self.position
         self.engine_power = engine_power
 
-    def move_backward(self, engine_power):
-        self.next_direction = self.orient * (-1) + self.position
-        self.engine_power = engine_power
-
     def turn_left(self, angle, engine_power):
+        if angle > GameEnv.Max_Yaw_Angle:
+            angle = GameEnv.Max_Yaw_Angle
+
         self.next_direction.update(angle=self.orient.angle - angle, length=Config.Unit_Length)
         self.next_direction = self.next_direction + self.position
         self.engine_power = engine_power
 
     def turn_right(self, angle, engine_power):
+        if angle > GameEnv.Max_Yaw_Angle:
+            angle = GameEnv.Max_Yaw_Angle            
+
         self.next_direction.update(angle=self.orient.angle + angle, length=Config.Unit_Length)
         self.next_direction = self.next_direction + self.position
         self.engine_power = engine_power
