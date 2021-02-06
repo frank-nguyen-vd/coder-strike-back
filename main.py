@@ -8,6 +8,22 @@ def debug(msg):
 
 class Tools:
     @staticmethod
+    def limit_angle(angle_deg=None, angle_rad=None):
+        if angle_deg != None:
+            if angle_deg > 180:
+                return angle_deg - 360
+            if angle_deg < -180:
+                return angle_deg + 360
+            return angle_deg
+
+        if angle_rad != None:
+            if angle_rad > math.pi:
+                return angle_rad - math.pi * 2
+            if angle_rad < -math.pi:
+                return angle_rad + math.pi * 2
+            return angle_rad
+
+    @staticmethod
     def calc_dist(x1=None, y1=None, x2=None, y2=None, pos1=None, pos2=None, vector=None):
         delta_x = 0
         delta_y = 0
