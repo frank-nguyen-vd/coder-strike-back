@@ -4,12 +4,28 @@ import math
 class Config:
     Unit_Length = 100
 
-def debug(msg):
-    # Write an action using print
-    # To debug: print("Debug messages...", file=sys.stderr, flush=True)
-    print(f"Debug: {msg}", file=sys.stderr, flush=True)
+class GameEnv:
+    Max_Yaw_Angle = 18
+    Max_Engine_Power = 100
+    Map_Width = 16000
+    Map_Height = 9000
+
+    @staticmethod
+    def calc_acceleration(engine_power, speed):
+        acceleration = -0.15 * speed + engine_power
+        if acceleration < 0:
+            acceleration = 0
+
+        return acceleration    
 
 class Tools:
+
+    @staticmethod
+    def debug(msg):
+        # Write an action using print
+        # To debug: print("Debug messages...", file=sys.stderr, flush=True)
+        print(f"Debug: {msg}", file=sys.stderr, flush=True)
+
     @staticmethod
     def limit_angle(angle_deg=None, angle_rad=None):
         if angle_deg != None:
@@ -128,20 +144,6 @@ class Vector:
         self.x = new_vector.x
         self.y = new_vector.y
 
-class GameEnv:
-    Max_Yaw_Angle = 16
-    Max_Engine_Power = 100
-    Map_Width = 16000
-    Map_Height = 9000
-
-    @staticmethod
-    def calc_acceleration(engine_power, speed):
-        acceleration = -0.15 * speed + engine_power
-        if acceleration < 0:
-            acceleration = 0
-
-        return acceleration
-
 class CheckPoint:
     def __init__(self, x, y, radius):
         self.pos = Vector(x, y)
@@ -209,8 +211,10 @@ def main():
     player = Pod()
     opponent = Pod()    
 
+    player.orient.angle = 0
     # game loop
     while True:
+        prev_orient = player.orient.angle
         # next_checkpoint_x: x position of the next check point
         # next_checkpoint_y: y position of the next check point
         # next_checkpoint_dist: distance to the next checkpoint
@@ -224,11 +228,9 @@ def main():
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
 
-        debug(f"chkpt orientation: {next_checkpoint_angle}")
-
-        player.move_backward(100)
-
-        debug(f"{player.next_direction} {player.orient}")
+        player.turn_left(90, 20)
+        
+        Tools.debug(f"yaw: {abs(player.orient.angle-prev_orient):.1f} speed {player.velocity.length}")
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
