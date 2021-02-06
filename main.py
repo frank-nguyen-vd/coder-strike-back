@@ -51,6 +51,31 @@ class Tools:
             output = output + 360
 
         return output                
+class Vector:
+    def __init__(self, x=None, y=None, angle=None, length=None):
+        self.x = None
+        self.y = None
+        self.angle = None
+        self.length = None
+        self.update(x=x, y=y, angle=angle, length=length)
+
+    def update(self, x=None, y=None, angle=None, length=None):
+        if x and y:
+            self.x = x
+            self.y = y
+            self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
+            self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)
+        elif angle and length:
+            self.angle = angle
+            self.length = length
+            angle_rad = Tools.conv_deg_to_rad(self.angle)
+            self.x = math.cos(angle_rad) * self.length
+            self.y = math.sin(angle_rad) * self.length
+
+    def copy(self, new_vector):
+        self.x = new_vector.x
+        self.y = new_vector.y
+
 class GameEnv:
     Max_Yaw_Angle = 16
     Max_Engine_Power = 100
