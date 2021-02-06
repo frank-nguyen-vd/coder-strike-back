@@ -28,13 +28,13 @@ class Tools:
         delta_x = 0
         delta_y = 0
 
-        if x1 and y1 and x2 and y2:
+        if x1 != None and y1 != None and x2 != None and y2 != None:
             delta_x = x2 - x1
             delta_y = y2 - y1
-        elif pos1 and pos2:
+        elif pos1 != None and pos2 != None:
             delta_x = pos2.x - pos1.x
             delta_y = pos2.y = pos1.y
-        elif vector:
+        elif vector != None:
             delta_x = vector.x
             delta_y = vector.y
 
@@ -61,12 +61,7 @@ class Tools:
         elif y < 0:
             output = -90
 
-        if output > 180:
-            output = output - 360
-        elif output < -180:
-            output = output + 360
-
-        return output                
+        return Tools.limit_angle(angle_deg=output)
 
 class Vector:
     def __init__(self):
@@ -76,22 +71,28 @@ class Vector:
         self.length = None
 
     def update(self, x=None, y=None, angle=None, length=None, pos1=None, pos2=None):
-        if x and y:
+        if x != None and y != None:
             self.x = x
             self.y = y
             self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
             self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)
-        elif angle and length:
+        elif angle !=None and length != None:
             self.angle = angle
             self.length = length
             angle_rad = Tools.conv_deg_to_rad(self.angle)
             self.x = math.cos(angle_rad) * self.length
             self.y = math.sin(angle_rad) * self.length
-        elif pos1 and pos2:
-            self.x = pos2.x - pos1.x
-            self.y = pos2.y - pos1.y
-            self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
-            self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)        
+        elif pos1 != None and pos2 != None:
+            if pos1.x != None and pos1.y != None and pos2.x != None and pos2.y != None:
+                self.x = pos2.x - pos1.x
+                self.y = pos2.y - pos1.y
+                self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
+                self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)
+        else:
+            return
+        
+        self.angle = Tools.limit_angle(angle_deg=self.angle)
+        
 
     def copy(self, new_vector):
         self.x = new_vector.x
@@ -110,7 +111,6 @@ class GameEnv:
             acceleration = 0
 
         return acceleration
-    
 
 class Position:
     def __init__(self, x=None, y=None):
@@ -135,6 +135,8 @@ class Pod:
         self.position = Position()
         self.pos_prev = Position()
 
+        # velocity is a vector
+        # velocity angle is absolute (ref to horizon)
         # negative angle means toward upper screen
         # position angle means toward lower screen
         self.velocity = Vector()
@@ -142,14 +144,16 @@ class Pod:
         self.acceleration = 0
 
         # chkpt is the vector from pod to check point
+        # chkpt.angle is the absolute angle (ref to horizon)
         # negative angle means the vector points toward upper screen
         # positive angle means the vector points toward lower screen
         self.chkpt = Vector()
 
-        # orientation is the angle between pod orientation and vector chkpt
-        self.orientation = 0
+        # orient is vector of the pod orientation
+        # orient.angle is the absolute angle of the pod orientation  (ref to horizon)
+        self.orient = Vector()
 
-    def update(self, x, y, chkpt_x, chkpt_y, orientation=None):
+    def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):
         self.pos_prev.copy(self.position)
         self.position.update(x=x, y=y)
 
@@ -158,7 +162,8 @@ class Pod:
 
         self.chkpt.update(pos1=self.position, pos2=Position(chkpt_x, chkpt_y))
 
-        self.orientation = orientation        
+        if chkpt_angle != None:            
+            self.orient.update(angle=self.chkpt.angle + chkpt_angle, length=1)
 
 player = Pod()
 opponent = Pod()    
@@ -172,11 +177,17 @@ while True:
     x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in input().split()]
     opponent_x, opponent_y = [int(i) for i in input().split()]
 
-    player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, orientation=next_checkpoint_angle)
+    # the game angle is opposite of our convention
+    next_checkpoint_angle = -next_checkpoint_angle
+
+    player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
     opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
     
+    debug(f"chkpt angle: {player.chkpt.angle:.1f}")
+    debug(f"pod angle: abs {player.orient.angle} rel {next_checkpoint_angle}")
+
     # You have to output the target position
     # followed by the engine_power (0 <= engine_power <= 100)
     # i.e.: "x y engine_power"
-    engine_power = 50
+    engine_power = 100
     print(f"{str(next_checkpoint_x)} {str(next_checkpoint_y)} {engine_power}")
