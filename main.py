@@ -177,6 +177,16 @@ class Pod:
         # orient.angle is the absolute angle of the pod orientation  (ref to horizon)
         self.orient = Vector()
 
+        self.next_direction = Vector()
+        self.engine_power = 0
+
+    def move_forward(self, engine_power):
+        self.next_direction.copy(self.orient)
+        self.engine_power = engine_power
+
+    def move_backward(self, engine_power):
+        self.next_direction = self.orient * (-1)
+        self.engine_power = engine_power
     def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):
         self.pos_prev.copy(self.position)
         self.position.update(x=x, y=y)
