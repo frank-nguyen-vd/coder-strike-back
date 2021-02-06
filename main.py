@@ -228,7 +228,6 @@ def main():
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
         # i.e.: "x y engine_power"
-        engine_power = 100
-        print(f"{str(next_checkpoint_x)} {str(next_checkpoint_y)} {engine_power}")
+        print(f"{str(player.next_direction.x)} {str(player.next_direction.y)} {player.engine_power}")
 
 main()
