@@ -1,6 +1,9 @@
 import sys
 import math
 
+class Config:
+    Unit_Length = 100
+
 def debug(msg):
     # Write an action using print
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
@@ -64,11 +67,14 @@ class Tools:
         return Tools.limit_angle(angle_deg=output)
 
 class Vector:
-    def __init__(self, x=None, y=None, angle=None, length=None):
+    def __init__(self, x=0, y=0, angle=0, length=0):
         self.x = x
         self.y = y
         self.angle = angle
         self.length = length
+
+    def __str__(self):
+        return f"{int(round(self.x, 0))} {int(round(self.y, 0))}"
 
     def __add__(self, other):
         if isinstance(other, (int, float)):
@@ -136,28 +142,15 @@ class GameEnv:
 
         return acceleration
 
-class Position:
-    def __init__(self, x=None, y=None):
-        self.x = x
-        self.y = y     
-
-    def copy(self, new_pos):
-        self.x = new_pos.x
-        self.y = new_pos.y
-
-    def update(self, x, y):
-        self.x = x
-        self.y = y
-
 class CheckPoint:
     def __init__(self, x, y, radius):
-        self.pos = Position(x, y)
+        self.pos = Vector(x, y)
         self.radius = radius
 
 class Pod:
     def __init__(self):
-        self.position = Position()
-        self.pos_prev = Position()
+        self.position = Vector()
+        self.pos_prev = Vector()
 
         # velocity is a vector
         # velocity angle is absolute (ref to horizon)
@@ -175,25 +168,28 @@ class Pod:
 
         # orient is vector of the pod orientation
         # orient.angle is the absolute angle of the pod orientation  (ref to horizon)
+        self.orient_prev = Vector()
         self.orient = Vector()
 
         self.next_direction = Vector()
         self.engine_power = 0
 
     def move_forward(self, engine_power):
-        self.next_direction.copy(self.orient)
+        self.next_direction = self.orient + self.position
         self.engine_power = engine_power
 
     def move_backward(self, engine_power):
-        self.next_direction = self.orient * (-1)
+        self.next_direction = self.orient * (-1) + self.position
         self.engine_power = engine_power
 
     def turn_left(self, angle, engine_power):
-        self.next_direction.update(angle=self.orient.angle - angle, length=1)
+        self.next_direction.update(angle=self.orient.angle - angle, length=Config.Unit_Length)
+        self.next_direction = self.next_direction + self.position
         self.engine_power = engine_power
 
     def turn_right(self, angle, engine_power):
-        self.next_direction.update(angle=self.orient.angle + angle, length=1)
+        self.next_direction.update(angle=self.orient.angle + angle, length=Config.Unit_Length)
+        self.next_direction = self.next_direction + self.position
         self.engine_power = engine_power
 
     def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):
@@ -203,10 +199,11 @@ class Pod:
         self.vel_prev.copy(self.velocity)
         self.velocity.update(pos1=self.pos_prev, pos2=self.position)
 
-        self.chkpt.update(pos1=self.position, pos2=Position(chkpt_x, chkpt_y))
+        self.chkpt.update(pos1=self.position, pos2=Vector(chkpt_x, chkpt_y))
 
-        if chkpt_angle != None:            
-            self.orient.update(angle=self.chkpt.angle + chkpt_angle, length=1)
+        if chkpt_angle != None:       
+            self.orient_prev.copy(self.orient)     
+            self.orient.update(angle=self.chkpt.angle + chkpt_angle, length=Config.Unit_Length)
 
 def main():
     player = Pod()
@@ -227,9 +224,15 @@ def main():
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
 
+        debug(f"chkpt orientation: {next_checkpoint_angle}")
+
+        player.move_backward(100)
+
+        debug(f"{player.next_direction} {player.orient}")
+
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
         # i.e.: "x y engine_power"
-        print(f"{str(player.next_direction.x)} {str(player.next_direction.y)} {player.engine_power}")
+        print(f"{player.next_direction} {player.engine_power}")
 
 main()
