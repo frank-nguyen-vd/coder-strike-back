@@ -92,9 +92,17 @@ class GameEnv:
     
 
 class Position:
-    def __init__(self, x=0, y=0):
+    def __init__(self):
+        self.x = None
+        self.y = None     
+
+    def copy(self, new_pos):
+        self.x = new_pos.x
+        self.y = new_pos.y
+
+    def update(self, x, y):
         self.x = x
-        self.y = y        
+        self.y = y
 
 class CheckPoint:
     def __init__(self, x, y, radius):
