@@ -18,8 +18,7 @@ class GameEnv:
 
     @staticmethod
     def calc_acceleration(engine_power, speed):
-        max_acceleration = 1.2 * engine_power
-        acceleration = -0.15 * speed + max_acceleration
+        acceleration = -0.15 * speed + engine_power
         if acceleration < 0:
             acceleration = 0
 
