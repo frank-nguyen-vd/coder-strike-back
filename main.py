@@ -8,8 +8,21 @@ def debug(msg):
 
 class Tools:
     @staticmethod
-    def calc_dist(x1, y1, x2, y2):
-        return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    def calc_dist(x1=None, y1=None, x2=None, y2=None, point1=None, point2=None, vector=None):
+        delta_x = 0
+        delta_y = 0
+
+        if x1 and y1 and x2 and y2:
+            delta_x = x2 - x1
+            delta_y = y2 - y1
+        elif pointA and pointB:
+            delta_x = point2.x - point1.x
+            delta_y = point2.y = point1.y
+        elif vector:
+            delta_x = vector.x
+            delta_y = vector.y
+
+        return math.sqrt(delta_x**2 + delta_y**2)
     
     @staticmethod
     def conv_rad_to_deg(angle_rad):
