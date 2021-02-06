@@ -32,6 +32,25 @@ class Tools:
     def conv_deg_to_rad(angle_deg):
         return angle_deg / 180 * math.pi
 
+    @staticmethod
+    def calc_vector_angle(x, y):
+        output = 0
+
+        if x > 0:
+            output = Tools.conv_rad_to_deg(math.atan(y / x))
+        elif x < 0:
+            output = 180 + Tools.conv_rad_to_deg(math.atan(y / x)))
+        elif y > 0:
+            output = 90
+        elif y < 0:
+            output = -90
+
+        if output > 180:
+            output = output - 360
+        elif output < -180:
+            output = output + 360
+
+        return output                
 class GameEnv:
     Max_Yaw_Angle = 16
     Max_Engine_Power = 100
