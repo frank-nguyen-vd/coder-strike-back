@@ -165,29 +165,29 @@ class Pod:
         if chkpt_angle != None:            
             self.orient.update(angle=self.chkpt.angle + chkpt_angle, length=1)
 
-player = Pod()
-opponent = Pod()    
+def main():
+    player = Pod()
+    opponent = Pod()    
 
-# game loop
-while True:
-    # next_checkpoint_x: x position of the next check point
-    # next_checkpoint_y: y position of the next check point
-    # next_checkpoint_dist: distance to the next checkpoint
-    # next_checkpoint_angle: angle between your pod angle_to_chkpt and the direction of the next checkpoint
-    x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in input().split()]
-    opponent_x, opponent_y = [int(i) for i in input().split()]
+    # game loop
+    while True:
+        # next_checkpoint_x: x position of the next check point
+        # next_checkpoint_y: y position of the next check point
+        # next_checkpoint_dist: distance to the next checkpoint
+        # next_checkpoint_angle: angle between your pod angle_to_chkpt and the direction of the next checkpoint
+        x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in input().split()]
+        opponent_x, opponent_y = [int(i) for i in input().split()]
 
-    # the game angle is opposite of our convention
-    next_checkpoint_angle = -next_checkpoint_angle
+        # the game angle is opposite of our convention
+        next_checkpoint_angle = -next_checkpoint_angle
 
-    player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
-    opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
-    
-    debug(f"chkpt angle: {player.chkpt.angle:.1f}")
-    debug(f"pod angle: abs {player.orient.angle} rel {next_checkpoint_angle}")
+        player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
+        opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
 
-    # You have to output the target position
-    # followed by the engine_power (0 <= engine_power <= 100)
-    # i.e.: "x y engine_power"
-    engine_power = 100
-    print(f"{str(next_checkpoint_x)} {str(next_checkpoint_y)} {engine_power}")
+        # You have to output the target position
+        # followed by the engine_power (0 <= engine_power <= 100)
+        # i.e.: "x y engine_power"
+        engine_power = 100
+        print(f"{str(next_checkpoint_x)} {str(next_checkpoint_y)} {engine_power}")
+
+main()
