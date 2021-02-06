@@ -8,16 +8,16 @@ def debug(msg):
 
 class Tools:
     @staticmethod
-    def calc_dist(x1=None, y1=None, x2=None, y2=None, point1=None, point2=None, vector=None):
+    def calc_dist(x1=None, y1=None, x2=None, y2=None, pos1=None, pos2=None, vector=None):
         delta_x = 0
         delta_y = 0
 
         if x1 and y1 and x2 and y2:
             delta_x = x2 - x1
             delta_y = y2 - y1
-        elif pointA and pointB:
-            delta_x = point2.x - point1.x
-            delta_y = point2.y = point1.y
+        elif pos1 and pos2:
+            delta_x = pos2.x - pos1.x
+            delta_y = pos2.y = pos1.y
         elif vector:
             delta_x = vector.x
             delta_y = vector.y
@@ -39,7 +39,7 @@ class Tools:
         if x > 0:
             output = Tools.conv_rad_to_deg(math.atan(y / x))
         elif x < 0:
-            output = 180 + Tools.conv_rad_to_deg(math.atan(y / x)))
+            output = 180 + Tools.conv_rad_to_deg(math.atan(y / x))
         elif y > 0:
             output = 90
         elif y < 0:
@@ -53,14 +53,13 @@ class Tools:
         return output                
 
 class Vector:
-    def __init__(self, x=None, y=None, angle=None, length=None):
+    def __init__(self):
         self.x = None
         self.y = None
         self.angle = None
         self.length = None
-        self.update(x=x, y=y, angle=angle, length=length)
 
-    def update(self, x=None, y=None, angle=None, length=None):
+    def update(self, x=None, y=None, angle=None, length=None, pos1=None, pos2=None):
         if x and y:
             self.x = x
             self.y = y
@@ -72,6 +71,11 @@ class Vector:
             angle_rad = Tools.conv_deg_to_rad(self.angle)
             self.x = math.cos(angle_rad) * self.length
             self.y = math.sin(angle_rad) * self.length
+        elif pos1 and pos2:
+            self.x = pos2.x - pos1.x
+            self.y = pos2.y - pos1.y
+            self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
+            self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)        
 
     def copy(self, new_vector):
         self.x = new_vector.x
@@ -93,9 +97,9 @@ class GameEnv:
     
 
 class Position:
-    def __init__(self):
-        self.x = None
-        self.y = None     
+    def __init__(self, x=None, y=None):
+        self.x = x
+        self.y = y     
 
     def copy(self, new_pos):
         self.x = new_pos.x
@@ -112,7 +116,7 @@ class CheckPoint:
 
 class Pod:
     def __init__(self):
-        self.pos = Position()
+        self.position = Position()
         self.pos_prev = Position()
 
         # negative angle means toward upper screen
@@ -129,15 +133,16 @@ class Pod:
         # orientation is the angle between pod orientation and vector chkpt
         self.orientation = 0
 
-    def update(self, x, y, chkpt_x, chkpt_y, angle_to_chkpt=None):
-        self.pos_prev.copy(self.pos)
-        self.pos.update(x, y)
+    def update(self, x, y, chkpt_x, chkpt_y, orientation=None):
+        self.pos_prev.copy(self.position)
+        self.position.update(x=x, y=y)
 
-        if self.
+        self.vel_prev.copy(self.velocity)
+        self.velocity.update(pos1=self.pos_prev, pos2=self.position)
 
-        self.angle_to_chkpt = angle_to_chkpt
+        self.chkpt.update(pos1=self.position, pos2=Position(chkpt_x, chkpt_y))
 
-        self.dist_to_chkpt = Tools.calc_dist(x1=x, y1=y, x2=chkpt_x, y2=chkpt_y)
+        self.orientation = orientation        
 
 player = Pod()
 opponent = Pod()    
@@ -151,11 +156,9 @@ while True:
     x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in input().split()]
     opponent_x, opponent_y = [int(i) for i in input().split()]
 
-    player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, angle_to_chkpt=next_checkpoint_angle)
+    player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, orientation=next_checkpoint_angle)
     opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
     
-    debug(f"game dist {next_checkpoint_dist} calc {player.dist_to_chkpt}")
-
     # You have to output the target position
     # followed by the engine_power (0 <= engine_power <= 100)
     # i.e.: "x y engine_power"
