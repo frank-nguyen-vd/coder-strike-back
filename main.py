@@ -51,6 +51,7 @@ class Tools:
             output = output + 360
 
         return output                
+
 class Vector:
     def __init__(self, x=None, y=None, angle=None, length=None):
         self.x = None
@@ -110,67 +111,29 @@ class CheckPoint:
         self.radius = radius
 
 class Pod:
-    def __init__(self, x=None, y=None, angle_to_chkpt=None, dist_to_chkpt=None, speed=None, acceleration=None):
-        self.x = x
-        self.y = y
-        self.prev_x = x
-        self.prev_y = y
+    def __init__(self):
+        self.pos = Position()
+        self.pos_prev = Position()
 
-        self.speed = speed
-        self.prev_speed = speed
-
-        self.acceleration = acceleration
-
-        # trajectory is the direction of velocity
         # negative angle means toward upper screen
         # position angle means toward lower screen
-        self.trajectory = 0
+        self.velocity = Vector()
+        self.vel_prev = Vector()
+        self.acceleration = 0
 
-        self.angle_to_chkpt = angle_to_chkpt
+        # chkpt is the vector from pod to check point
+        # negative angle means the vector points toward upper screen
+        # positive angle means the vector points toward lower screen
+        self.chkpt = Vector()
 
-        self.dist_to_chkpt = dist_to_chkpt
-
-    def update_speed(self):
-        self.prev_speed = self.speed
-        if self.prev_x == None or self.prev_y == None:
-            self.speed = 0
-        else:
-            self.speed = Tools.calc_dist(x1=self.prev_x, y1=self.prev_y, x2=self.x, y2=self.y)
-
-    def update_trajectory(self):
-        if self.prev_x == None or self.prev_y == None:
-            self.trajectory = 0
-        else:
-            delta_x = self.x - self.prev_x
-            delta_y = self.y - self.prev_y
-
-            if delta_x > 0:
-                self.trajectory = Tools.conv_rad_to_deg(math.atan(delta_y / delta_x))
-            elif delta_x < 0:
-                self.trajectory = -(180 - Tools.conv_rad_to_deg(math.atan(delta_y / delta_x)))
-            elif delta_y > 0:
-                self.trajectory = 90
-            elif delta_y < 0:
-                self.trajectory = -90
-            else:
-                self.trajectory = 0
-
-            if self.trajectory < -180:
-                self.trajectory = 360 + self.trajectory
-
+        # orientation is the angle between pod orientation and vector chkpt
+        self.orientation = 0
 
     def update(self, x, y, chkpt_x, chkpt_y, angle_to_chkpt=None):
-        self.prev_x = self.x
-        self.prev_y = self.y
-        self.x = x        
-        self.y = y
+        self.pos_prev.copy(self.pos)
+        self.pos.update(x, y)
 
-
-
-        if self.prev_speed == None:
-            self.acceleration = 0
-        else:
-            self.acceleration = self.speed - self.prev_speed
+        if self.
 
         self.angle_to_chkpt = angle_to_chkpt
 
