@@ -18,6 +18,10 @@ class GameEnv:
 
         return acceleration    
 
+    @staticmethod
+    def calc_engine_power(acceleration, speed):
+        return acceleration + 0.15 * (speed - acceleration)
+
 class Tools:
 
     @staticmethod
