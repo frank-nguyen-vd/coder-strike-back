@@ -180,23 +180,14 @@ class Pod:
         self.next_direction = Vector()
         self.engine_power = 0
 
-    def move_forward(self, engine_power):
-        self.next_direction = self.orient + self.position
-        self.engine_power = engine_power
-
-    def turn_left(self, angle, engine_power):
+    def set_direction(self, angle=0, engine_power=0):
+        # angle = (0: forward, < 0: turn left, > 0: turn right)
         if angle > GameEnv.Max_Yaw_Angle:
+            angle = GameEnv.Max_Yaw_Angle
+        elif angle < -GameEnv.Max_Yaw_Angle:
             angle = GameEnv.Max_Yaw_Angle
 
         self.next_direction.update(angle=self.orient.angle - angle, length=Config.Unit_Length)
-        self.next_direction = self.next_direction + self.position
-        self.engine_power = engine_power
-
-    def turn_right(self, angle, engine_power):
-        if angle > GameEnv.Max_Yaw_Angle:
-            angle = GameEnv.Max_Yaw_Angle            
-
-        self.next_direction.update(angle=self.orient.angle + angle, length=Config.Unit_Length)
         self.next_direction = self.next_direction + self.position
         self.engine_power = engine_power
 
@@ -235,7 +226,7 @@ def main():
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
 
-        player.turn_left(90, 20)
+        player.set_direction(0, 100)
         
         Tools.debug(f"yaw: {abs(player.orient.angle-prev_orient):.1f} speed {player.velocity.length}")
 
