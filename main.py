@@ -11,7 +11,7 @@ class GameEnv:
     Map_Height = 9000
 
     @staticmethod
-    def calc_acceleration(engine_power, speed):
+    def calc_acceleration(engine_power: int, speed: float)->float:
         acceleration = -0.15 * speed + engine_power
         if acceleration < 0:
             acceleration = 0
@@ -19,8 +19,8 @@ class GameEnv:
         return acceleration    
 
     @staticmethod
-    def calc_engine_power(acceleration, speed):
-        return acceleration + 0.15 * (speed - acceleration)
+    def calc_engine_power(acceleration: float, speed: float)->int:
+        return int(acceleration + 0.15 * (speed - acceleration))
 
 class Tools:
 
@@ -31,7 +31,7 @@ class Tools:
         print(f"Debug: {msg}", file=sys.stderr, flush=True)
 
     @staticmethod
-    def limit_angle(angle_deg=None, angle_rad=None):
+    def limit_angle(angle_deg=None, angle_rad=None)->float:
         if angle_deg != None:
             if angle_deg > 180:
                 return angle_deg - 360
@@ -47,7 +47,7 @@ class Tools:
             return angle_rad
 
     @staticmethod
-    def calc_dist(x1=None, y1=None, x2=None, y2=None, pos1=None, pos2=None, vector=None):
+    def calc_dist(x1=None, y1=None, x2=None, y2=None, pos1=None, pos2=None, vector=None)->float:
         delta_x = 0
         delta_y = 0
 
@@ -206,6 +206,7 @@ class Pod:
 
         self.vel_prev.copy(self.velocity)
         self.velocity.update(pos1=self.pos_prev, pos2=self.position)
+        self.engine_power = GameEnv.calc_engine_power(acceleration=self.acceleration, speed=self.velocity.length)        
 
         self.chkpt.update(pos1=self.position, pos2=Vector(chkpt_x, chkpt_y))
 
