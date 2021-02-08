@@ -4,7 +4,7 @@ import math
 GameTurn = 0
 
 class Config:
-    Unit_Length = 100
+    Unit_Length = 1000
 
 class GameEnv:
     Max_Yaw_Angle = 18
