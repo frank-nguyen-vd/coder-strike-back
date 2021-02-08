@@ -47,6 +47,20 @@ class Tools:
             return angle_rad
 
     @staticmethod
+    def conv_cartesian_polar(x=None, y=None, angle=None, length=None):    
+        if x != None and y != None:
+            out_angle = Tools.calc_vector_angle(x=x, y=y)
+            out_angle = Tools.limit_angle(angle_deg=out_angle)    
+            out_length = Tools.calc_dist(x1=x, y1=y)
+            return out_angle, out_length
+        elif angle !=None and length != None:
+            angle_rad = Tools.conv_deg_to_rad(angle)
+            out_x = math.cos(angle_rad) * length
+            out_y = math.sin(angle_rad) * length
+            return out_x, out_y
+        return NotImplemented
+
+    @staticmethod
     def calc_dist(x1=None, y1=None, x2=None, y2=None, pos1=None, pos2=None, vector=None)->float:
         delta_x = 0
         delta_y = 0
