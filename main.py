@@ -306,10 +306,26 @@ def main():
 
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
-
-        player.set_direction(0, 100)
         
-        Tools.debug(f"yaw: {abs(player.orient.angle-prev_orient):.1f} speed {player.velocity.length}")
+        if GameTurn == 1:
+            set_angle = 0
+        else:
+            set_angle=90
+        set_engine_power=100
+        
+        player.pilot(yaw_angle=set_angle, engine_power=set_engine_power)
+        
+        Tools.debug(f"chkpt angle {player.chkpt.angle:.0f} yaw angle {set_angle:.0f} next angle {player.next_direction.angle:.0f}")        
+        
+        next_pos = Simulation.next_pos(
+            curr_pos=player.position,
+            curr_vel=player.velocity,
+            curr_angle=player.orient.angle,
+            yaw_angle=set_angle,
+            engine_power=set_engine_power
+        )
+        Tools.debug(f"curr pos {x} {y} new pos {next_pos.x:.0f} {next_pos.y:.0f}")
+        
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
