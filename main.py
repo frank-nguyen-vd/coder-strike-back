@@ -74,6 +74,9 @@ class Tools:
         elif vector != None:
             delta_x = vector.x
             delta_y = vector.y
+        elif x1 != None and y1 != None:
+            delta_x = x1
+            delta_y = y1
 
         return math.sqrt(delta_x**2 + delta_y**2)
     
