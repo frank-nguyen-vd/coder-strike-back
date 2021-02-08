@@ -104,11 +104,12 @@ class Tools:
         return Tools.limit_angle(angle_deg=output)
 
 class Vector:
-    def __init__(self, x=0, y=0, angle=0, length=0):
-        self.x = x
-        self.y = y
-        self.angle = angle
-        self.length = length
+    def __init__(self, x=None, y=None, angle=None, length=None, pos1=None, pos2=None):
+        self.x = 0
+        self.y = 0
+        self.angle = 0
+        self.length = 0
+        self.update(x=x, y=y, angle=angle, length=length, pos1=pos1, pos2=pos2)
 
     def __str__(self):
         return f"{int(round(self.x, 0))} {int(round(self.y, 0))}"
