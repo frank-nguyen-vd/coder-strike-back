@@ -1,6 +1,8 @@
 import sys
 import math
 
+GameTurn = 0
+
 class Config:
     Unit_Length = 100
 
@@ -287,11 +289,11 @@ class Simulation:
 def main():
     player = Pod()
     opponent = Pod()    
+    global GameTurn
 
-    player.orient.angle = 0
     # game loop
-    while True:
-        prev_orient = player.orient.angle
+    while True:        
+        GameTurn += 1
         # next_checkpoint_x: x position of the next check point
         # next_checkpoint_y: y position of the next check point
         # next_checkpoint_dist: distance to the next checkpoint
