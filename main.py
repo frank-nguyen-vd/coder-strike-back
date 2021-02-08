@@ -180,55 +180,95 @@ class CheckPoint:
 
 class Pod:
     def __init__(self):
-        self.position = Vector()
-        self.pos_prev = Vector()
+        self.position: Vector = None
+        self.pos_prev: Vector = None
 
         # velocity is a vector
         # velocity angle is absolute (ref to horizon)
         # negative angle means toward upper screen
-        # position angle means toward lower screen
-        self.velocity = Vector()
-        self.vel_prev = Vector()
-        self.acceleration = 0
+        # positive angle means toward lower screen
+        self.velocity: Vector = None
+        self.vel_prev: Vector = None
+
+        # accleration is a vector
+        # acceleration angle is absolute (ref to horizon)
+        # negative angle means toward upper screen
+        # positive angle means toward lower screen
+        self.acceleration: Vector = Vector(x=0, y=0)
+        self.acc_prev: Vector = Vector(x=0, y=0)
 
         # chkpt is the vector from pod to check point
         # chkpt.angle is the absolute angle (ref to horizon)
         # negative angle means the vector points toward upper screen
         # positive angle means the vector points toward lower screen
-        self.chkpt = Vector()
+        self.chkpt: Vector = Vector()
 
         # orient is vector of the pod orientation
         # orient.angle is the absolute angle of the pod orientation  (ref to horizon)
-        self.orient_prev = Vector()
-        self.orient = Vector()
+        self.orient_prev: Vector = Vector()
+        self.orient: Vector = Vector()
 
-        self.next_direction = Vector()
-        self.engine_power = 0
+        # next direction and engine power are the output param to pilot the pod
+        self.next_direction: Vector = Vector()        
+        self.engine_power: int = None
+        self.engine_power_prev: int = None
 
-    def set_direction(self, angle=0, engine_power=0):
-        # angle = (0: forward, < 0: turn left, > 0: turn right)
-        if angle > GameEnv.Max_Yaw_Angle:
-            angle = GameEnv.Max_Yaw_Angle
-        elif angle < -GameEnv.Max_Yaw_Angle:
-            angle = GameEnv.Max_Yaw_Angle
+    def pilot(self, yaw_angle=0, engine_power=0):
+        # yaw angle = (0: forward, < 0: turn left, > 0: turn right)
+        if yaw_angle > GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
+        elif yaw_angle < -GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
 
-        self.next_direction.update(angle=self.orient.angle - angle, length=Config.Unit_Length)
-        self.next_direction = self.next_direction + self.position
+        self.acceleration.update(
+            angle=self.orient.angle + yaw_angle, 
+            length=GameEnv.calc_acceleration(speed=self.velocity.length, engine_power=engine_power))
+        self.next_direction = self.acceleration + self.position
         self.engine_power = engine_power
 
-    def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):
-        self.pos_prev.copy(self.position)
-        self.position.update(x=x, y=y)
+    def update_position(self, x, y):
+        if self.position == None:
+            self.position = Vector(x=x, y=y)
+            self.pos_prev = Vector(pos1=self.position)            
+        else:
+            self.pos_prev.copy(self.position)
+            self.position.update(x=x, y=y)
 
-        self.vel_prev.copy(self.velocity)
-        self.velocity.update(pos1=self.pos_prev, pos2=self.position)
-        self.engine_power = GameEnv.calc_engine_power(acceleration=self.acceleration, speed=self.velocity.length)        
+    def update_velocity(self):
+        if self.velocity == None:
+            self.velocity = Vector(pos1=self.pos_prev, pos2=self.position)
+            self.vel_prev = Vector(pos1=self.velocity)            
+        else:
+            self.vel_prev.copy(self.velocity)
+            self.velocity.update(pos1=self.pos_prev, pos2=self.position)
+            
+    def update_acceleration(self):
+        self.acc_prev = self.velocity - self.vel_prev
 
-        self.chkpt.update(pos1=self.position, pos2=Vector(chkpt_x, chkpt_y))
+    def update_checkpoint(self, x, y):
+        self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
 
-        if chkpt_angle != None:       
-            self.orient_prev.copy(self.orient)     
+    def update_orientation(self, chkpt_angle=None):
+        self.orient_prev.copy(self.orient)
+        if chkpt_angle != None:                 
             self.orient.update(angle=self.chkpt.angle + chkpt_angle, length=Config.Unit_Length)
+        else:
+            self.orient.copy(self.acc_prev)
+            self.orient.update(length=Config.Unit_Length)
+
+    def update_engine_power(self):
+        if self.engine_power == None:
+            self.engine_power_prev = GameEnv.calc_engine_power(acceleration=self.acc_prev.length, speed=self.vel_prev.length)
+        else:
+            self.engine_power_prev = self.engine_power
+
+    def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):        
+        self.update_position(x=x, y=y)
+        self.update_checkpoint(x=chkpt_x, y=chkpt_y)
+        self.update_velocity()
+        self.update_acceleration()
+        self.update_orientation(chkpt_angle=chkpt_angle)
+        self.update_engine_power()
 
 def main():
     player = Pod()
