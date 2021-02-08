@@ -1,8 +1,10 @@
 import sys
 import math
 
+GameTurn = 0
+
 class Config:
-    Unit_Length = 100
+    Unit_Length = 1000
 
 class GameEnv:
     Max_Yaw_Angle = 18
@@ -47,6 +49,20 @@ class Tools:
             return angle_rad
 
     @staticmethod
+    def conv_cartesian_polar(x=None, y=None, angle=None, length=None):    
+        if x != None and y != None:
+            out_angle = Tools.calc_vector_angle(x=x, y=y)
+            out_angle = Tools.limit_angle(angle_deg=out_angle)    
+            out_length = Tools.calc_dist(x1=x, y1=y)
+            return out_angle, out_length
+        elif angle !=None and length != None:
+            angle_rad = Tools.conv_deg_to_rad(angle)
+            out_x = math.cos(angle_rad) * length
+            out_y = math.sin(angle_rad) * length
+            return out_x, out_y
+        return NotImplemented
+
+    @staticmethod
     def calc_dist(x1=None, y1=None, x2=None, y2=None, pos1=None, pos2=None, vector=None)->float:
         delta_x = 0
         delta_y = 0
@@ -60,6 +76,9 @@ class Tools:
         elif vector != None:
             delta_x = vector.x
             delta_y = vector.y
+        elif x1 != None and y1 != None:
+            delta_x = x1
+            delta_y = y1
 
         return math.sqrt(delta_x**2 + delta_y**2)
     
@@ -87,34 +106,35 @@ class Tools:
         return Tools.limit_angle(angle_deg=output)
 
 class Vector:
-    def __init__(self, x=0, y=0, angle=0, length=0):
-        self.x = x
-        self.y = y
-        self.angle = angle
-        self.length = length
+    def __init__(self, x=None, y=None, angle=None, length=None, pos1=None, pos2=None):
+        self.x = 0
+        self.y = 0
+        self.angle = 0
+        self.length = 0
+        self.update(x=x, y=y, angle=angle, length=length, pos1=pos1, pos2=pos2)
 
     def __str__(self):
         return f"{int(round(self.x, 0))} {int(round(self.y, 0))}"
 
     def __add__(self, other):
         if isinstance(other, (int, float)):
-            return Vector(self.x + other, self.y + other)
+            return Vector(x=self.x + other, y=self.y + other)
         elif isinstance(other, Vector):
-            return Vector(self.x + other.x, self.y + other.y)
+            return Vector(x=self.x + other.x, y=self.y + other.y)
         else:
             return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, (int, float)):
-            return Vector(self.x - other, self.y - other)
+            return Vector(x=self.x - other, y=self.y - other)
         elif isinstance(other, Vector):
-            return Vector(self.x - other.x, self.y - other.y)
+            return Vector(x=self.x - other.x, y=self.y - other.y)
         else:
             return NotImplemented
 
     def __mul__(self, other):
         if isinstance(other, (int, float)):
-            return Vector(other * self.x, other * self.y)
+            return Vector(x=other * self.x, y=other * self.y)
         elif isinstance(other, Vector):
             return NotImplemented
         else:
@@ -124,25 +144,32 @@ class Vector:
         if x != None and y != None:
             self.x = x
             self.y = y
-            self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
-            self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)
+            self.angle, self.length = Tools.conv_cartesian_polar(x=self.x, y=self.y)
         elif angle !=None and length != None:
             self.angle = angle
             self.length = length
-            angle_rad = Tools.conv_deg_to_rad(self.angle)
-            self.x = math.cos(angle_rad) * self.length
-            self.y = math.sin(angle_rad) * self.length
+            self.x, self.y = Tools.conv_cartesian_polar(angle=self.angle, length=self.length)
         elif pos1 != None and pos2 != None:
             if pos1.x != None and pos1.y != None and pos2.x != None and pos2.y != None:
                 self.x = pos2.x - pos1.x
                 self.y = pos2.y - pos1.y
-                self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
-                self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)
+                self.angle, self.length = Tools.conv_cartesian_polar(x=self.x, y=self.y)
+            else:
+                return NotImplemented
+        elif length != None:
+            if self.length != 0:
+                scaler = length / self.length
+                self.x *= scaler
+                self.y *= scaler
+                self.length = length
+        elif pos1 != None:
+            self.x = pos1.x
+            self.y = pos1.y
+            self.angle, self.length = Tools.conv_cartesian_polar(x=self.x, y=self.y)
         else:
             return
         
-        self.angle = Tools.limit_angle(angle_deg=self.angle)
-        
+        self.angle = Tools.limit_angle(angle_deg=self.angle)        
 
     def copy(self, new_vector):
         self.x = new_vector.x
@@ -155,64 +182,118 @@ class CheckPoint:
 
 class Pod:
     def __init__(self):
-        self.position = Vector()
-        self.pos_prev = Vector()
+        self.position: Vector = None
+        self.pos_prev: Vector = None
 
         # velocity is a vector
         # velocity angle is absolute (ref to horizon)
         # negative angle means toward upper screen
-        # position angle means toward lower screen
-        self.velocity = Vector()
-        self.vel_prev = Vector()
-        self.acceleration = 0
+        # positive angle means toward lower screen
+        self.velocity: Vector = None
+        self.vel_prev: Vector = None
+
+        # accleration is a vector
+        # acceleration angle is absolute (ref to horizon)
+        # negative angle means toward upper screen
+        # positive angle means toward lower screen
+        self.acceleration: Vector = Vector(x=0, y=0)
+        self.acc_prev: Vector = Vector(x=0, y=0)
 
         # chkpt is the vector from pod to check point
         # chkpt.angle is the absolute angle (ref to horizon)
         # negative angle means the vector points toward upper screen
         # positive angle means the vector points toward lower screen
-        self.chkpt = Vector()
+        self.chkpt: Vector = Vector()
 
         # orient is vector of the pod orientation
         # orient.angle is the absolute angle of the pod orientation  (ref to horizon)
-        self.orient_prev = Vector()
-        self.orient = Vector()
+        self.orient_prev: Vector = Vector()
+        self.orient: Vector = Vector()
 
-        self.next_direction = Vector()
-        self.engine_power = 0
+        # next direction and engine power are the output param to pilot the pod
+        self.next_direction: Vector = Vector()        
+        self.engine_power: int = None
+        self.engine_power_prev: int = None
 
-    def set_direction(self, angle=0, engine_power=0):
-        # angle = (0: forward, < 0: turn left, > 0: turn right)
-        if angle > GameEnv.Max_Yaw_Angle:
-            angle = GameEnv.Max_Yaw_Angle
-        elif angle < -GameEnv.Max_Yaw_Angle:
-            angle = GameEnv.Max_Yaw_Angle
+    def pilot(self, yaw_angle=0, engine_power=0):
+        # yaw angle = (0: forward, < 0: turn left, > 0: turn right)
+        if yaw_angle > GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
+        elif yaw_angle < -GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
 
-        self.next_direction.update(angle=self.orient.angle - angle, length=Config.Unit_Length)
-        self.next_direction = self.next_direction + self.position
+        self.acceleration.update(
+            angle=self.orient.angle + yaw_angle, 
+            length=GameEnv.calc_acceleration(speed=self.velocity.length, engine_power=engine_power))
+        self.next_direction = self.acceleration + self.position
         self.engine_power = engine_power
 
-    def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):
-        self.pos_prev.copy(self.position)
-        self.position.update(x=x, y=y)
+    def update_position(self, x, y):
+        if self.position == None:
+            self.position = Vector(x=x, y=y)
+            self.pos_prev = Vector(pos1=self.position)            
+        else:
+            self.pos_prev.copy(self.position)
+            self.position.update(x=x, y=y)
 
-        self.vel_prev.copy(self.velocity)
-        self.velocity.update(pos1=self.pos_prev, pos2=self.position)
-        self.engine_power = GameEnv.calc_engine_power(acceleration=self.acceleration, speed=self.velocity.length)        
+    def update_velocity(self):
+        if self.velocity == None:
+            self.velocity = Vector(pos1=self.pos_prev, pos2=self.position)
+            self.vel_prev = Vector(pos1=self.velocity)            
+        else:
+            self.vel_prev.copy(self.velocity)
+            self.velocity.update(pos1=self.pos_prev, pos2=self.position)
+            
+    def update_acceleration(self):
+        self.acc_prev = self.velocity - self.vel_prev
 
-        self.chkpt.update(pos1=self.position, pos2=Vector(chkpt_x, chkpt_y))
+    def update_checkpoint(self, x, y):
+        self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
 
-        if chkpt_angle != None:       
-            self.orient_prev.copy(self.orient)     
+    def update_orientation(self, chkpt_angle=None):
+        self.orient_prev.copy(self.orient)
+        if chkpt_angle != None:                 
             self.orient.update(angle=self.chkpt.angle + chkpt_angle, length=Config.Unit_Length)
+        else:
+            self.orient.copy(self.acc_prev)
+            self.orient.update(length=Config.Unit_Length)
+
+    def update_engine_power(self):
+        if self.engine_power == None:
+            self.engine_power_prev = GameEnv.calc_engine_power(acceleration=self.acc_prev.length, speed=self.vel_prev.length)
+        else:
+            self.engine_power_prev = self.engine_power
+
+    def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):        
+        self.update_position(x=x, y=y)
+        self.update_checkpoint(x=chkpt_x, y=chkpt_y)
+        self.update_velocity()
+        self.update_acceleration()
+        self.update_orientation(chkpt_angle=chkpt_angle)
+        self.update_engine_power()
+
+class Simulation:
+    @staticmethod
+    def next_pos(curr_pos: Vector, curr_vel: Vector, curr_angle: float, yaw_angle: float, engine_power: int)->Vector:
+        # angle = (0: forward, < 0: turn left, > 0: turn right)
+        if yaw_angle > GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
+        elif yaw_angle < -GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
+
+        acc_angle = curr_angle + yaw_angle        
+        acc_length = GameEnv.calc_acceleration(speed=curr_vel.length, engine_power=engine_power)        
+        thrust_dir = Vector(angle=acc_angle, length=acc_length)        
+        return (curr_vel + thrust_dir) + curr_pos
 
 def main():
     player = Pod()
     opponent = Pod()    
+    global GameTurn
 
-    player.orient.angle = 0
     # game loop
-    while True:
-        prev_orient = player.orient.angle
+    while True:        
+        GameTurn += 1
         # next_checkpoint_x: x position of the next check point
         # next_checkpoint_y: y position of the next check point
         # next_checkpoint_dist: distance to the next checkpoint
@@ -225,10 +306,26 @@ def main():
 
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
-
-        player.set_direction(0, 100)
         
-        Tools.debug(f"yaw: {abs(player.orient.angle-prev_orient):.1f} speed {player.velocity.length}")
+        if GameTurn == 1:
+            set_angle = 0
+        else:
+            set_angle=90
+        set_engine_power=100
+        
+        player.pilot(yaw_angle=set_angle, engine_power=set_engine_power)
+        
+        Tools.debug(f"chkpt angle {player.chkpt.angle:.0f} yaw angle {set_angle:.0f} next angle {player.next_direction.angle:.0f}")        
+        
+        next_pos = Simulation.next_pos(
+            curr_pos=player.position,
+            curr_vel=player.velocity,
+            curr_angle=player.orient.angle,
+            yaw_angle=set_angle,
+            engine_power=set_engine_power
+        )
+        Tools.debug(f"curr pos {x} {y} new pos {next_pos.x:.0f} {next_pos.y:.0f}")
+        
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
