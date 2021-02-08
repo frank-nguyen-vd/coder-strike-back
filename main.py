@@ -151,7 +151,19 @@ class Vector:
             if pos1.x != None and pos1.y != None and pos2.x != None and pos2.y != None:
                 self.x = pos2.x - pos1.x
                 self.y = pos2.y - pos1.y
-                self.angle, self.length = Tools.conv_cartesian_polar(x=x, y=y)
+                self.angle, self.length = Tools.conv_cartesian_polar(x=self.x, y=self.y)
+            else:
+                return NotImplemented
+        elif length != None:
+            if self.length != 0:
+                scaler = length / self.length
+                self.x *= scaler
+                self.y *= scaler
+                self.length = length
+        elif pos1 != None:
+            self.x = pos1.x
+            self.y = pos1.y
+            self.angle, self.length = Tools.conv_cartesian_polar(x=self.x, y=self.y)
         else:
             return
         
