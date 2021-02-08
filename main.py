@@ -116,23 +116,23 @@ class Vector:
 
     def __add__(self, other):
         if isinstance(other, (int, float)):
-            return Vector(self.x + other, self.y + other)
+            return Vector(x=self.x + other, y=self.y + other)
         elif isinstance(other, Vector):
-            return Vector(self.x + other.x, self.y + other.y)
+            return Vector(x=self.x + other.x, y=self.y + other.y)
         else:
             return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, (int, float)):
-            return Vector(self.x - other, self.y - other)
+            return Vector(x=self.x - other, y=self.y - other)
         elif isinstance(other, Vector):
-            return Vector(self.x - other.x, self.y - other.y)
+            return Vector(x=self.x - other.x, y=self.y - other.y)
         else:
             return NotImplemented
 
     def __mul__(self, other):
         if isinstance(other, (int, float)):
-            return Vector(other * self.x, other * self.y)
+            return Vector(x=other * self.x, y=other * self.y)
         elif isinstance(other, Vector):
             return NotImplemented
         else:
@@ -142,7 +142,7 @@ class Vector:
         if x != None and y != None:
             self.x = x
             self.y = y
-            self.angle, self.length = Tools.conv_cartesian_polar(x=x, y=y)
+            self.angle, self.length = Tools.conv_cartesian_polar(x=self.x, y=self.y)
         elif angle !=None and length != None:
             self.angle = angle
             self.length = length
