@@ -270,6 +270,20 @@ class Pod:
         self.update_orientation(chkpt_angle=chkpt_angle)
         self.update_engine_power()
 
+class Simulation:
+    @staticmethod
+    def next_pos(curr_pos: Vector, curr_vel: Vector, curr_angle: float, yaw_angle: float, engine_power: int)->Vector:
+        # angle = (0: forward, < 0: turn left, > 0: turn right)
+        if yaw_angle > GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
+        elif yaw_angle < -GameEnv.Max_Yaw_Angle:
+            yaw_angle = GameEnv.Max_Yaw_Angle
+
+        acc_angle = curr_angle + yaw_angle        
+        acc_length = GameEnv.calc_acceleration(speed=curr_vel.length, engine_power=engine_power)        
+        thrust_dir = Vector(angle=acc_angle, length=acc_length)        
+        return (curr_vel + thrust_dir) + curr_pos
+
 def main():
     player = Pod()
     opponent = Pod()    
