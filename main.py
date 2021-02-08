@@ -141,25 +141,20 @@ class Vector:
         if x != None and y != None:
             self.x = x
             self.y = y
-            self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
-            self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)
+            self.angle, self.length = Tools.conv_cartesian_polar(x=x, y=y)
         elif angle !=None and length != None:
             self.angle = angle
             self.length = length
-            angle_rad = Tools.conv_deg_to_rad(self.angle)
-            self.x = math.cos(angle_rad) * self.length
-            self.y = math.sin(angle_rad) * self.length
+            self.x, self.y = Tools.conv_cartesian_polar(angle=self.angle, length=self.length)
         elif pos1 != None and pos2 != None:
             if pos1.x != None and pos1.y != None and pos2.x != None and pos2.y != None:
                 self.x = pos2.x - pos1.x
                 self.y = pos2.y - pos1.y
-                self.angle = Tools.calc_vector_angle(x=self.x, y=self.y)
-                self.length = Tools.calc_dist(x1=0, y1=0, x2=self.x, y2=self.y)
+                self.angle, self.length = Tools.conv_cartesian_polar(x=x, y=y)
         else:
             return
         
-        self.angle = Tools.limit_angle(angle_deg=self.angle)
-        
+        self.angle = Tools.limit_angle(angle_deg=self.angle)        
 
     def copy(self, new_vector):
         self.x = new_vector.x
