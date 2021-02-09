@@ -1,5 +1,7 @@
 import sys
 import math
+import random
+import copy
 
 GameTurn = 0
 
@@ -265,7 +267,7 @@ class Pod:
         else:
             self.engine_power_prev = self.engine_power
 
-    def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):        
+    def update(self, x, y, chkpt_x=None, chkpt_y=None, chkpt_angle=None):        
         self.update_position(x=x, y=y)
         self.update_checkpoint(x=chkpt_x, y=chkpt_y)
         self.update_velocity()
@@ -323,6 +325,15 @@ def main():
     opponent = Pod()    
     global GameTurn
 
+    controller = GA_Controller()
+    genome = controller.init_genome()
+    actions = controller.conv_genome_to_actions(genome=genome)
+    Tools.debug(f"genome {genome}")
+    Tools.debug(f"action {actions}")
+
+    global GameTurn
+    GameTurn = 0
+
     # game loop
     while True:        
         GameTurn += 1
@@ -338,26 +349,20 @@ def main():
 
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
-        
+
         if GameTurn == 1:
-            set_angle = 0
+            last_pos = Simulation.last_pos(pod=player, actions=actions)
+        
+        if GameTurn < 6:
+            action = actions[GameTurn - 1]
+            player.pilot(yaw_angle=action[0], engine_power=action[1])
         else:
-            set_angle=90
-        set_engine_power=100
+            player.pilot(yaw_angle=0, engine_power=100)
         
-        player.pilot(yaw_angle=set_angle, engine_power=set_engine_power)
-        
-        Tools.debug(f"chkpt angle {player.chkpt.angle:.0f} yaw angle {set_angle:.0f} next angle {player.next_direction.angle:.0f}")        
-        
-        next_pos = Simulation.next_pos(
-            curr_pos=player.position,
-            curr_vel=player.velocity,
-            curr_angle=player.orient.angle,
-            yaw_angle=set_angle,
-            engine_power=set_engine_power
-        )
-        Tools.debug(f"curr pos {x} {y} new pos {next_pos.x:.0f} {next_pos.y:.0f}")
-        
+        Tools.debug(f"pos {x} {y}")
+
+        if GameTurn == 6:
+            Tools.debug(f"predicted {last_pos.x:.0f} {last_pos.y:.0f} current {x} {y}")
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
