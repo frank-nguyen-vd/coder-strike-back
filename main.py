@@ -13,6 +13,16 @@ class GameEnv:
     Max_Engine_Power = 100
     Map_Width = 16000
     Map_Height = 9000
+    Max_Computing_Time = 0.070 # seconds
+    Chkpt_Radius = 600
+    List_Chkpts = []
+
+    @staticmethod
+    def add_chkpt(x, y):
+        for item in GameEnv.List_Chkpts:
+            if item[0] == x or item[1] == y:
+                return
+        GameEnv.List_Chkpts.append([x, y])
 
     @staticmethod
     def calc_acceleration(engine_power: int, speed: float)->float:
@@ -176,11 +186,6 @@ class Vector:
     def copy(self, new_vector):
         self.x = new_vector.x
         self.y = new_vector.y
-
-class CheckPoint:
-    def __init__(self, x, y, radius):
-        self.pos = Vector(x, y)
-        self.radius = radius
 
 class Pod:
     def __init__(self):
