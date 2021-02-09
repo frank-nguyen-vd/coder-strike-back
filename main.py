@@ -2,8 +2,10 @@ import sys
 import math
 import random
 import copy
+import timeit
 
 GameTurn = 0
+StartTime = 0
 
 class Config:
     Unit_Length = 1000
@@ -329,20 +331,16 @@ class GA_Controller:
 
 def main():
     player = Pod()
-    opponent = Pod()    
-    global GameTurn
-
-    controller = GA_Controller()
-    genome = controller.init_genome()
-    actions = controller.conv_genome_to_actions(genome=genome)
-    Tools.debug(f"genome {genome}")
-    Tools.debug(f"action {actions}")
+    opponent = Pod()
 
     global GameTurn
+    global StartTime
+    
     GameTurn = 0
 
     # game loop
-    while True:        
+    while True:
+        StartTime = timeit.default_timer()            
         GameTurn += 1
         # next_checkpoint_x: x position of the next check point
         # next_checkpoint_y: y position of the next check point
@@ -357,19 +355,7 @@ def main():
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
 
-        if GameTurn == 1:
-            last_pos = Simulation.last_pos(pod=player, actions=actions)
-        
-        if GameTurn < 6:
-            action = actions[GameTurn - 1]
-            player.pilot(yaw_angle=action[0], engine_power=action[1])
-        else:
-            player.pilot(yaw_angle=0, engine_power=100)
-        
-        Tools.debug(f"pos {x} {y}")
-
-        if GameTurn == 6:
-            Tools.debug(f"predicted {last_pos.x:.0f} {last_pos.y:.0f} current {x} {y}")
+        player.pilot(yaw_angle=0, engine_power=100)
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
