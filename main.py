@@ -295,14 +295,16 @@ class Simulation:
         return (pod.velocity + thrust_dir) + pod.position
 
     @staticmethod
-    def last_pos(pod: Pod, actions: list)->Vector:
-        output = copy.deepcopy(pod)
+    def predict_pos(pod: Pod, actions: list):
+        dummy = copy.deepcopy(pod)
+        prediction = []
         for action in actions:
             yaw_angle = action[0]
             engine_power = action[1]
-            new_pos = Simulation.next_pos(pod=output, yaw_angle=yaw_angle, engine_power=engine_power)
-            output.update(x=new_pos.x, y=new_pos.y)
-        return output.position
+            new_pos = Simulation.next_pos(pod=dummy, yaw_angle=yaw_angle, engine_power=engine_power)
+            dummy.update(x=new_pos.x, y=new_pos.y)
+            prediction.append(new_pos)
+        return prediction
 
 
 class GA_Controller:
