@@ -15,7 +15,7 @@ class GameEnv:
     Max_Engine_Power = 100
     Map_Width = 16000
     Map_Height = 9000
-    Max_Computing_Time = 0.070 # seconds
+    Max_Computing_Time = 0.050 # seconds
     Chkpt_Radius = 600
     List_Chkpts = []
 
@@ -221,6 +221,8 @@ class Pod:
         self.acceleration: Vector = Vector(x=0, y=0)
         self.acc_prev: Vector = Vector(x=0, y=0)
 
+        self.next_chkpt = Vector()
+
         # chkpt is the vector from pod to check point
         # chkpt.angle is the absolute angle (ref to horizon)
         # negative angle means the vector points toward upper screen
@@ -271,6 +273,7 @@ class Pod:
 
     def update_checkpoint(self, x=None, y=None):
         if x != None and y != None:
+            self.next_chkpt.update(x=x, y=y)
             self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
 
     def update_orientation(self, chkpt_angle=None):
@@ -321,15 +324,18 @@ class Simulation:
             prediction.append(new_pos)
         return prediction
 
-
 class GA_Controller:
     N_Genes = 5
     Population = 10
     Death_Rate = 0.2
-    Mutation_Rate = 0.01
+    Mutation_Rate = 0.001
+    Reward_Chkpt_Reached = 20000
+    Negative_Infinity = -1000000
     
-    def __init__(self):
-        random.seed()       
+    def __init__(self):        
+        random.seed()  
+        self.alpha = None
+        self.alpha_score = None     
 
     def init_genome(self):
         return [[random.random(), random.random()] for i in range(0, self.N_Genes)]
@@ -348,16 +354,80 @@ class GA_Controller:
                 (next_chkpt_x, next_chkpt_y) = GameEnv.List_Chkpts[next_chkpt]
                 score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=next_chkpt_x, y2=next_chkpt_y)
                 return score
-        (last_pos_x, last_pos_y) = list_pos[-1]
+        last_pos_x, last_pos_y = list_pos[-1].x, list_pos[-1].y
         next_chkpt = GameEnv.next_chkpt(chkpt_index)        
         score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=chkpt_x, y2=chkpt_y)
+        return score
 
     def calc_fitness(self, population, pod):
         fitness = []
+        index = 0
         for genome in population:
             list_pos = Simulation.predict_pos(pod=pod, actions=self.conv_genome_to_actions(genome=genome))
-            score = self.calc_score(list_pos=list_pos, chkpt_index=GameEnv.find_chkpt(pod.chkpt))
-            fitness.append(score)
+            
+            score = self.calc_score(list_pos=list_pos, chkpt_index=GameEnv.find_chkpt(x=pod.next_chkpt.x, y=pod.next_chkpt.y))
+            index += 1
+            fitness.append([index, score])
+        return fitness
+
+    def survivor_selection(self, population, fitness):
+        def get_score(item):
+            return item[1]
+        
+        fitness.sort(key=get_score, reverse=True)
+
+        n_dead = int(self.Death_Rate * self.Population)
+        new_pop = []
+        for i in range(0, self.Population - n_dead):
+            new_pop.append(population[fitness[i][0]])
+        population = new_pop
+
+    def save_the_best(self, population, fitness):        
+        (index, score) = fitness[0]
+        if score > self.alpha_score:
+            self.alpha = population[0]
+            self.alpha_score = score
+
+    def crossover(self, population):
+        n_pop = len(population)
+        n_offsprings = int(self.Death_Rate * self.Population)
+        Tools.debug(f"{n_pop} {n_offsprings}")
+        for i in range(0, n_offsprings):
+            male = random.randint(0, n_pop)
+            while True:
+                female = random.randint(0, n_pop)
+                if female != male:
+                    break
+            Tools.debug(f"{male}, {female}")
+            male = population[male]
+            female = population[female]
+            offspring = []
+            for gene_index in range(0, self.N_Genes):                
+                if random.random() > 0.5:
+                    offspring.append(male[gene_index])
+                else:
+                    offspring.append(female[gene_index])
+            population.append(offspring)
+
+    def mutate(self, population):
+        for i in range(0, len(population)):
+            for gene_index in range(0, self.N_Genes):
+                if random.random() < self.Mutation_Rate:
+                    population[i][gene_index][0] = random.random()
+                    population[i][gene_index][1] = random.random()
+    
+    def main(self, pod: Pod):
+        global StartTime
+        population = self.init_population()
+        self.alpha_score = self.Negative_Infinity
+        
+        while timeit.default_timer() - StartTime <= GameEnv.Max_Computing_Time:
+            fitness = self.calc_fitness(population=population, pod=pod)
+            self.survivor_selection(population=population, fitness=fitness)
+            self.save_the_best(population=population, fitness=fitness)
+            self.crossover(population=population)
+            self.mutate(population=population)
+        return self.conv_genome_to_actions(genome=[self.alpha[0]])
 
     def conv_genome_to_actions(self, genome: list):
         actions = []
@@ -370,15 +440,16 @@ class GA_Controller:
 def main():
     player = Pod()
     opponent = Pod()
+    controller = GA_Controller()
 
     global GameTurn
-    global StartTime
+    global StartTime   
     
     GameTurn = 0
 
     # game loop
     while True:
-        StartTime = timeit.default_timer()            
+        
         GameTurn += 1
         # next_checkpoint_x: x position of the next check point
         # next_checkpoint_y: y position of the next check point
@@ -386,14 +457,18 @@ def main():
         # next_checkpoint_angle: angle between your pod angle_to_chkpt and the direction of the next checkpoint
         x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in input().split()]
         opponent_x, opponent_y = [int(i) for i in input().split()]
+        StartTime = timeit.default_timer()
+
+        GameEnv.add_chkpt(x=next_checkpoint_x, y=next_checkpoint_y)        
 
         # the game angle is opposite of our convention
         next_checkpoint_angle = -next_checkpoint_angle
 
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
-
-        player.pilot(yaw_angle=0, engine_power=100)
+        
+        [[yaw_angle, engine_power]] = controller.main(pod=player)
+        player.pilot(yaw_angle=yaw_angle, engine_power=engine_power)
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
