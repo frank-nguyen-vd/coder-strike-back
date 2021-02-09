@@ -275,17 +275,28 @@ class Pod:
 
 class Simulation:
     @staticmethod
-    def next_pos(curr_pos: Vector, curr_vel: Vector, curr_angle: float, yaw_angle: float, engine_power: int)->Vector:
+    def next_pos(pod: Pod, yaw_angle: float, engine_power: int)->Vector:
         # angle = (0: forward, < 0: turn left, > 0: turn right)
         if yaw_angle > GameEnv.Max_Yaw_Angle:
             yaw_angle = GameEnv.Max_Yaw_Angle
         elif yaw_angle < -GameEnv.Max_Yaw_Angle:
             yaw_angle = GameEnv.Max_Yaw_Angle
 
-        acc_angle = curr_angle + yaw_angle        
-        acc_length = GameEnv.calc_acceleration(speed=curr_vel.length, engine_power=engine_power)        
+        acc_angle = pod.orient.angle + yaw_angle        
+        acc_length = GameEnv.calc_acceleration(speed=pod.velocity.length, engine_power=engine_power)
         thrust_dir = Vector(angle=acc_angle, length=acc_length)        
-        return (curr_vel + thrust_dir) + curr_pos
+        return (pod.velocity + thrust_dir) + pod.position
+
+    @staticmethod
+    def last_pos(pod: Pod, actions: list)->Vector:
+        output = copy.deepcopy(pod)
+        for action in actions:
+            yaw_angle = action[0]
+            engine_power = action[1]
+            new_pos = Simulation.next_pos(pod=output, yaw_angle=yaw_angle, engine_power=engine_power)
+            output.update(x=new_pos.x, y=new_pos.y)
+        return output.position
+
 
 def main():
     player = Pod()
