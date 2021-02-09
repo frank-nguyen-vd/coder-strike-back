@@ -337,6 +337,28 @@ class GA_Controller:
     def init_population(self):
         return [self.init_genome() for i in range(0, self.Population)]
 
+    def calc_score(self, list_pos, chkpt_index):
+        score = 0
+        (chkpt_x, chkpt_y) = GameEnv.List_Chkpts[chkpt_index]
+        for pos in list_pos:            
+            if Tools.calc_dist(x1=pos.x, y1=pos.y, x2=chkpt_x, y2=chkpt_y) < GameEnv.Chkpt_Radius:
+                score = score + self.Reward_Chkpt_Reached
+                (last_pos_x, last_pos_y) = list_pos[-1]
+                next_chkpt = GameEnv.next_chkpt(chkpt_index)
+                (next_chkpt_x, next_chkpt_y) = GameEnv.List_Chkpts[next_chkpt]
+                score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=next_chkpt_x, y2=next_chkpt_y)
+                return score
+        (last_pos_x, last_pos_y) = list_pos[-1]
+        next_chkpt = GameEnv.next_chkpt(chkpt_index)        
+        score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=chkpt_x, y2=chkpt_y)
+
+    def calc_fitness(self, population, pod):
+        fitness = []
+        for genome in population:
+            list_pos = Simulation.predict_pos(pod=pod, actions=self.conv_genome_to_actions(genome=genome))
+            score = self.calc_score(list_pos=list_pos, chkpt_index=GameEnv.find_chkpt(pod.chkpt))
+            fitness.append(score)
+
     def conv_genome_to_actions(self, genome: list):
         actions = []
         for (encoded_yaw_angle, encoded_engine_power) in genome:
