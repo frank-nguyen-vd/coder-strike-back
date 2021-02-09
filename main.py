@@ -247,8 +247,9 @@ class Pod:
     def update_acceleration(self):
         self.acc_prev = self.velocity - self.vel_prev
 
-    def update_checkpoint(self, x, y):
-        self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
+    def update_checkpoint(self, x=None, y=None):
+        if x != None and y != None:
+            self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
 
     def update_orientation(self, chkpt_angle=None):
         self.orient_prev.copy(self.orient)
