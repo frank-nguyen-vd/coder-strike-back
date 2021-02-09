@@ -298,6 +298,26 @@ class Simulation:
         return output.position
 
 
+class GA_Controller:
+    N_Genes = 5
+    Population = 10
+    Death_Rate = 0.2
+    Mutation_Rate = 0.01
+    
+    def __init__(self):
+        random.seed()       
+
+    def init_genome(self):
+        return [[random.random(), random.random()] for i in range(0, self.N_Genes)]
+
+    def conv_genome_to_actions(self, genome: list):
+        actions = []
+        for (encoded_yaw_angle, encoded_engine_power) in genome:
+            yaw_angle = encoded_yaw_angle * (GameEnv.Max_Yaw_Angle - (-GameEnv.Max_Yaw_Angle)) + (-GameEnv.Max_Yaw_Angle)
+            engine_power = int(encoded_engine_power * GameEnv.Max_Engine_Power)
+            actions.append([yaw_angle, engine_power])
+        return actions
+
 def main():
     player = Pod()
     opponent = Pod()    
