@@ -27,6 +27,19 @@ class GameEnv:
         GameEnv.List_Chkpts.append([x, y])
 
     @staticmethod
+    def find_chkpt(x, y):
+        chkpts = GameEnv.List_Chkpts
+        for i in range(0, len(chkpts)):
+            if chkpts[i][0] == x and chkpts[i][1] == y:
+                return i
+        return IndexError
+
+    @staticmethod
+    def next_chkpt(index):
+        n = len(GameEnv.List_Chkpts)
+        return (index + 1) % n
+
+    @staticmethod
     def calc_acceleration(engine_power: int, speed: float)->float:
         acceleration = -0.15 * speed + engine_power
         if acceleration < 0:
