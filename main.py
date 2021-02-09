@@ -1,5 +1,7 @@
 import sys
 import math
+import random
+import copy
 
 GameTurn = 0
 
@@ -247,8 +249,9 @@ class Pod:
     def update_acceleration(self):
         self.acc_prev = self.velocity - self.vel_prev
 
-    def update_checkpoint(self, x, y):
-        self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
+    def update_checkpoint(self, x=None, y=None):
+        if x != None and y != None:
+            self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
 
     def update_orientation(self, chkpt_angle=None):
         self.orient_prev.copy(self.orient)
@@ -264,7 +267,7 @@ class Pod:
         else:
             self.engine_power_prev = self.engine_power
 
-    def update(self, x, y, chkpt_x, chkpt_y, chkpt_angle=None):        
+    def update(self, x, y, chkpt_x=None, chkpt_y=None, chkpt_angle=None):        
         self.update_position(x=x, y=y)
         self.update_checkpoint(x=chkpt_x, y=chkpt_y)
         self.update_velocity()
@@ -274,22 +277,62 @@ class Pod:
 
 class Simulation:
     @staticmethod
-    def next_pos(curr_pos: Vector, curr_vel: Vector, curr_angle: float, yaw_angle: float, engine_power: int)->Vector:
+    def next_pos(pod: Pod, yaw_angle: float, engine_power: int)->Vector:
         # angle = (0: forward, < 0: turn left, > 0: turn right)
         if yaw_angle > GameEnv.Max_Yaw_Angle:
             yaw_angle = GameEnv.Max_Yaw_Angle
         elif yaw_angle < -GameEnv.Max_Yaw_Angle:
             yaw_angle = GameEnv.Max_Yaw_Angle
 
-        acc_angle = curr_angle + yaw_angle        
-        acc_length = GameEnv.calc_acceleration(speed=curr_vel.length, engine_power=engine_power)        
+        acc_angle = pod.orient.angle + yaw_angle        
+        acc_length = GameEnv.calc_acceleration(speed=pod.velocity.length, engine_power=engine_power)
         thrust_dir = Vector(angle=acc_angle, length=acc_length)        
-        return (curr_vel + thrust_dir) + curr_pos
+        return (pod.velocity + thrust_dir) + pod.position
+
+    @staticmethod
+    def last_pos(pod: Pod, actions: list)->Vector:
+        output = copy.deepcopy(pod)
+        for action in actions:
+            yaw_angle = action[0]
+            engine_power = action[1]
+            new_pos = Simulation.next_pos(pod=output, yaw_angle=yaw_angle, engine_power=engine_power)
+            output.update(x=new_pos.x, y=new_pos.y)
+        return output.position
+
+
+class GA_Controller:
+    N_Genes = 5
+    Population = 10
+    Death_Rate = 0.2
+    Mutation_Rate = 0.01
+    
+    def __init__(self):
+        random.seed()       
+
+    def init_genome(self):
+        return [[random.random(), random.random()] for i in range(0, self.N_Genes)]
+
+    def conv_genome_to_actions(self, genome: list):
+        actions = []
+        for (encoded_yaw_angle, encoded_engine_power) in genome:
+            yaw_angle = encoded_yaw_angle * (GameEnv.Max_Yaw_Angle - (-GameEnv.Max_Yaw_Angle)) + (-GameEnv.Max_Yaw_Angle)
+            engine_power = int(encoded_engine_power * GameEnv.Max_Engine_Power)
+            actions.append([yaw_angle, engine_power])
+        return actions
 
 def main():
     player = Pod()
     opponent = Pod()    
     global GameTurn
+
+    controller = GA_Controller()
+    genome = controller.init_genome()
+    actions = controller.conv_genome_to_actions(genome=genome)
+    Tools.debug(f"genome {genome}")
+    Tools.debug(f"action {actions}")
+
+    global GameTurn
+    GameTurn = 0
 
     # game loop
     while True:        
@@ -306,26 +349,20 @@ def main():
 
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
-        
+
         if GameTurn == 1:
-            set_angle = 0
+            last_pos = Simulation.last_pos(pod=player, actions=actions)
+        
+        if GameTurn < 6:
+            action = actions[GameTurn - 1]
+            player.pilot(yaw_angle=action[0], engine_power=action[1])
         else:
-            set_angle=90
-        set_engine_power=100
+            player.pilot(yaw_angle=0, engine_power=100)
         
-        player.pilot(yaw_angle=set_angle, engine_power=set_engine_power)
-        
-        Tools.debug(f"chkpt angle {player.chkpt.angle:.0f} yaw angle {set_angle:.0f} next angle {player.next_direction.angle:.0f}")        
-        
-        next_pos = Simulation.next_pos(
-            curr_pos=player.position,
-            curr_vel=player.velocity,
-            curr_angle=player.orient.angle,
-            yaw_angle=set_angle,
-            engine_power=set_engine_power
-        )
-        Tools.debug(f"curr pos {x} {y} new pos {next_pos.x:.0f} {next_pos.y:.0f}")
-        
+        Tools.debug(f"pos {x} {y}")
+
+        if GameTurn == 6:
+            Tools.debug(f"predicted {last_pos.x:.0f} {last_pos.y:.0f} current {x} {y}")
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
