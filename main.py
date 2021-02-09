@@ -334,6 +334,9 @@ class GA_Controller:
     def init_genome(self):
         return [[random.random(), random.random()] for i in range(0, self.N_Genes)]
 
+    def init_population(self):
+        return [self.init_genome() for i in range(0, self.Population)]
+
     def conv_genome_to_actions(self, genome: list):
         actions = []
         for (encoded_yaw_angle, encoded_engine_power) in genome:
