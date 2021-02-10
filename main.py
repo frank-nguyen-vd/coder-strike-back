@@ -141,7 +141,7 @@ class Vector:
         self.update(x=x, y=y, angle=angle, length=length, pos1=pos1, pos2=pos2)
 
     def __str__(self):
-        return f"{int(round(self.x, 0))} {int(round(self.y, 0))}"
+        return f"{int(self.x)} {int(self.y)}"
 
     def __add__(self, other):
         if isinstance(other, (int, float)):
@@ -186,8 +186,8 @@ class Vector:
         elif length != None:
             if self.length != 0:
                 scaler = length / self.length
-                self.x *= scaler
-                self.y *= scaler
+                self.x = int(self.x * scaler)
+                self.y = int(self.y * scaler)
                 self.length = length
         elif pos1 != None:
             self.x = pos1.x
@@ -227,7 +227,7 @@ class Pod:
         # chkpt.angle is the absolute angle (ref to horizon)
         # negative angle means the vector points toward upper screen
         # positive angle means the vector points toward lower screen
-        self.chkpt: Vector = Vector()
+        self.chkpt_dir: Vector = Vector()        
 
         # orient is vector of the pod orientation
         # orient.angle is the absolute angle of the pod orientation  (ref to horizon)
@@ -274,12 +274,12 @@ class Pod:
     def update_checkpoint(self, x=None, y=None):
         if x != None and y != None:
             self.next_chkpt.update(x=x, y=y)
-            self.chkpt.update(pos1=self.position, pos2=Vector(x, y))        
+            self.chkpt_dir.update(pos1=self.position, pos2=Vector(x, y))        
 
     def update_orientation(self, chkpt_angle=None):
         self.orient_prev.copy(self.orient)
         if chkpt_angle != None:                 
-            self.orient.update(angle=self.chkpt.angle + chkpt_angle, length=Config.Unit_Length)
+            self.orient.update(angle=self.chkpt_dir.angle + chkpt_angle, length=Config.Unit_Length)
         else:
             self.orient.copy(self.acc_prev)
             self.orient.update(length=Config.Unit_Length)
