@@ -300,7 +300,7 @@ class Pod:
 
 class Simulation:
     @staticmethod
-    def next_pos(pod: Pod, yaw_angle: float, engine_power: int)->Vector:
+    def next_pos(pod: Pod, yaw_angle: float, engine_power: int):
         # angle = (0: forward, < 0: turn left, > 0: turn right)
         if yaw_angle > GameEnv.Max_Yaw_Angle:
             yaw_angle = GameEnv.Max_Yaw_Angle
@@ -310,7 +310,8 @@ class Simulation:
         acc_angle = pod.orient.angle + yaw_angle        
         acc_length = GameEnv.calc_acceleration(speed=pod.velocity.length, engine_power=engine_power)
         thrust_dir = Vector(angle=acc_angle, length=acc_length)        
-        return (pod.velocity + thrust_dir) + pod.position
+        prediction = (pod.velocity + thrust_dir) + pod.position
+        return [prediction.x, prediction.y]
 
     @staticmethod
     def predict_pos(pod: Pod, actions: list):
@@ -320,17 +321,17 @@ class Simulation:
             yaw_angle = action[0]
             engine_power = action[1]
             new_pos = Simulation.next_pos(pod=dummy, yaw_angle=yaw_angle, engine_power=engine_power)
-            dummy.update(x=new_pos.x, y=new_pos.y)
+            dummy.update(x=new_pos[0], y=new_pos[1])
             prediction.append(new_pos)
         return prediction
 
 class GA_Controller:
     N_Genes = 5
     Population = 10
-    Death_Rate = 0.2
+    Death_Rate = 0.5
     Mutation_Rate = 0.001
     Reward_Chkpt_Reached = 20000
-    Negative_Infinity = -1000000
+    Death_Score = -1000000
     
     def __init__(self):        
         random.seed()  
@@ -347,15 +348,16 @@ class GA_Controller:
         score = 0
         (chkpt_x, chkpt_y) = GameEnv.List_Chkpts[chkpt_index]
         for pos in list_pos:            
-            if Tools.calc_dist(x1=pos.x, y1=pos.y, x2=chkpt_x, y2=chkpt_y) < GameEnv.Chkpt_Radius:
+            if pos[0] < 0 or pos[0] > GameEnv.Map_Width or pos[1] < 0 or pos[1] > GameEnv.Map_Height:
+                return self.Death_Score
+            if Tools.calc_dist(x1=pos[0], y1=pos[1], x2=chkpt_x, y2=chkpt_y) < GameEnv.Chkpt_Radius:
                 score = score + self.Reward_Chkpt_Reached
                 (last_pos_x, last_pos_y) = list_pos[-1]
                 next_chkpt = GameEnv.next_chkpt(chkpt_index)
                 (next_chkpt_x, next_chkpt_y) = GameEnv.List_Chkpts[next_chkpt]
                 score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=next_chkpt_x, y2=next_chkpt_y)
                 return score
-        last_pos_x, last_pos_y = list_pos[-1].x, list_pos[-1].y
-        next_chkpt = GameEnv.next_chkpt(chkpt_index)        
+        last_pos_x, last_pos_y = list_pos[-1][0], list_pos[-1][1]        
         score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=chkpt_x, y2=chkpt_y)
         return score
 
@@ -363,11 +365,10 @@ class GA_Controller:
         fitness = []
         index = 0
         for genome in population:
-            list_pos = Simulation.predict_pos(pod=pod, actions=self.conv_genome_to_actions(genome=genome))
-            
-            score = self.calc_score(list_pos=list_pos, chkpt_index=GameEnv.find_chkpt(x=pod.next_chkpt.x, y=pod.next_chkpt.y))
-            index += 1
+            list_pos = Simulation.predict_pos(pod=pod, actions=self.conv_genome_to_actions(genome=genome))            
+            score = self.calc_score(list_pos=list_pos, chkpt_index=GameEnv.find_chkpt(x=pod.next_chkpt.x, y=pod.next_chkpt.y))            
             fitness.append([index, score])
+            index += 1
         return fitness
 
     def survivor_selection(self, population, fitness):
@@ -376,11 +377,11 @@ class GA_Controller:
         
         fitness.sort(key=get_score, reverse=True)
 
-        n_dead = int(self.Death_Rate * self.Population)
+        n_survivors = self.Population - int(self.Death_Rate * self.Population)
         new_pop = []
-        for i in range(0, self.Population - n_dead):
+        for i in range(0, n_survivors):
             new_pop.append(population[fitness[i][0]])
-        population = new_pop
+        return new_pop
 
     def save_the_best(self, population, fitness):        
         (index, score) = fitness[0]
@@ -391,23 +392,32 @@ class GA_Controller:
     def crossover(self, population):
         n_pop = len(population)
         n_offsprings = int(self.Death_Rate * self.Population)
-        Tools.debug(f"{n_pop} {n_offsprings}")
+        
         for i in range(0, n_offsprings):
-            male = random.randint(0, n_pop)
+            male = random.randint(0, n_pop-1)
             while True:
-                female = random.randint(0, n_pop)
+                female = random.randint(0, n_pop-1)
                 if female != male:
                     break
-            Tools.debug(f"{male}, {female}")
+            
             male = population[male]
             female = population[female]
             offspring = []
-            for gene_index in range(0, self.N_Genes):                
+            for gene_index in range(0, self.N_Genes):
+                gene0 = 0
+                gene1 = 0
                 if random.random() > 0.5:
-                    offspring.append(male[gene_index])
+                    gene0 = male[gene_index][0]
                 else:
-                    offspring.append(female[gene_index])
+                    gene0 = female[gene_index][0]
+                if random.random() > 0.5:
+                    gene1 = male[gene_index][0]
+                else:
+                    gene1 = female[gene_index][0]
+                offspring.append([gene0, gene1])
+
             population.append(offspring)
+        return population
 
     def mutate(self, population):
         for i in range(0, len(population)):
@@ -415,18 +425,19 @@ class GA_Controller:
                 if random.random() < self.Mutation_Rate:
                     population[i][gene_index][0] = random.random()
                     population[i][gene_index][1] = random.random()
+        return population
     
     def main(self, pod: Pod):
         global StartTime
         population = self.init_population()
-        self.alpha_score = self.Negative_Infinity
+        self.alpha_score = self.Death_Score
         
         while timeit.default_timer() - StartTime <= GameEnv.Max_Computing_Time:
             fitness = self.calc_fitness(population=population, pod=pod)
-            self.survivor_selection(population=population, fitness=fitness)
+            population = self.survivor_selection(population=population, fitness=fitness)
             self.save_the_best(population=population, fitness=fitness)
-            self.crossover(population=population)
-            self.mutate(population=population)
+            population = self.crossover(population=population)
+            populatin = self.mutate(population=population)
         return self.conv_genome_to_actions(genome=[self.alpha[0]])
 
     def conv_genome_to_actions(self, genome: list):
