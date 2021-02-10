@@ -15,7 +15,7 @@ class GameEnv:
     Max_Engine_Power = 100
     Map_Width = 16000
     Map_Height = 9000
-    Max_Computing_Time = 0.050 # seconds
+    Max_Computing_Time = 0.065 # seconds
     Chkpt_Radius = 600
     List_Chkpts = []
 
@@ -86,7 +86,7 @@ class Tools:
             angle_rad = Tools.conv_deg_to_rad(angle)
             out_x = math.cos(angle_rad) * length
             out_y = math.sin(angle_rad) * length
-            return out_x, out_y
+            return int(out_x), int(out_y)
         return NotImplemented
 
     @staticmethod
@@ -377,17 +377,16 @@ class GA_Controller:
         
         fitness.sort(key=get_score, reverse=True)
 
+        (index, score) = fitness[0]
+        if score > self.alpha_score:
+            self.alpha = population[index]
+            self.alpha_score = score
+
         n_survivors = self.Population - int(self.Death_Rate * self.Population)
         new_pop = []
         for i in range(0, n_survivors):
             new_pop.append(population[fitness[i][0]])
         return new_pop
-
-    def save_the_best(self, population, fitness):        
-        (index, score) = fitness[0]
-        if score > self.alpha_score:
-            self.alpha = population[0]
-            self.alpha_score = score
 
     def crossover(self, population):
         n_pop = len(population)
@@ -430,16 +429,17 @@ class GA_Controller:
         
         while timeit.default_timer() - StartTime <= GameEnv.Max_Computing_Time:
             fitness = self.calc_fitness(population=population, pod=pod)
-            population = self.survivor_selection(population=population, fitness=fitness)
-            self.save_the_best(population=population, fitness=fitness)
+            population = self.survivor_selection(population=population, fitness=fitness)            
             population = self.crossover(population=population)            
         return self.conv_genome_to_actions(genome=[self.alpha[0]])
 
     def conv_genome_to_actions(self, genome: list):
         actions = []
-        for (encoded_yaw_angle, encoded_engine_power) in genome:
-            yaw_angle = encoded_yaw_angle * (GameEnv.Max_Yaw_Angle - (-GameEnv.Max_Yaw_Angle)) + (-GameEnv.Max_Yaw_Angle)
-            engine_power = int(encoded_engine_power * GameEnv.Max_Engine_Power)
+        for (yaw_angle, engine_power) in genome:
+            if engine_power > GameEnv.Max_Engine_Power:
+                engine_power = GameEnv.Max_Engine_Power
+            elif engine_power < 0:
+                engine_power = 0
             actions.append([yaw_angle, engine_power])
         return actions
 
