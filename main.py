@@ -329,7 +329,7 @@ class GA_Controller:
     N_Genes = 5
     Population = 10
     Death_Rate = 0.5
-    Mutation_Rate = 0.001
+    Mutation_Rate = 0.01
     Reward_Chkpt_Reached = 20000
     Death_Score = -1000000
     
@@ -414,17 +414,13 @@ class GA_Controller:
                     gene1 = male[gene_index][0]
                 else:
                     gene1 = female[gene_index][0]
+                if random.random() < self.Mutation_Rate:
+                    gene0 = random.random()
+                    gene1 = random.random()
+                
                 offspring.append([gene0, gene1])
 
             population.append(offspring)
-        return population
-
-    def mutate(self, population):
-        for i in range(0, len(population)):
-            for gene_index in range(0, self.N_Genes):
-                if random.random() < self.Mutation_Rate:
-                    population[i][gene_index][0] = random.random()
-                    population[i][gene_index][1] = random.random()
         return population
     
     def main(self, pod: Pod):
@@ -436,8 +432,7 @@ class GA_Controller:
             fitness = self.calc_fitness(population=population, pod=pod)
             population = self.survivor_selection(population=population, fitness=fitness)
             self.save_the_best(population=population, fitness=fitness)
-            population = self.crossover(population=population)
-            populatin = self.mutate(population=population)
+            population = self.crossover(population=population)            
         return self.conv_genome_to_actions(genome=[self.alpha[0]])
 
     def conv_genome_to_actions(self, genome: list):
