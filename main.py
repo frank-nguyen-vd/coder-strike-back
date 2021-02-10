@@ -330,7 +330,7 @@ class GA_Controller:
     Population = 10
     Death_Rate = 0.5
     Mutation_Rate = 0.01
-    Reward_Chkpt_Reached = 20000
+    Reward_Chkpt_Reached = 1000000
     Death_Score = -1000000
     
     def __init__(self):        
@@ -348,17 +348,13 @@ class GA_Controller:
         score = 0
         (chkpt_x, chkpt_y) = GameEnv.List_Chkpts[chkpt_index]
         for pos in list_pos:            
-            if pos[0] < 0 or pos[0] > GameEnv.Map_Width or pos[1] < 0 or pos[1] > GameEnv.Map_Height:
-                return self.Death_Score
-            if Tools.calc_dist(x1=pos[0], y1=pos[1], x2=chkpt_x, y2=chkpt_y) < GameEnv.Chkpt_Radius:
+            dist = Tools.calc_dist(x1=pos[0], y1=pos[1], x2=chkpt_x, y2=chkpt_y)
+            if dist < GameEnv.Chkpt_Radius:
                 score = score + self.Reward_Chkpt_Reached
-                (last_pos_x, last_pos_y) = list_pos[-1]
-                next_chkpt = GameEnv.next_chkpt(chkpt_index)
-                (next_chkpt_x, next_chkpt_y) = GameEnv.List_Chkpts[next_chkpt]
-                score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=next_chkpt_x, y2=next_chkpt_y)
-                return score
-        last_pos_x, last_pos_y = list_pos[-1][0], list_pos[-1][1]        
-        score = score - Tools.calc_dist(x1=last_pos_x, y1=last_pos_y, x2=chkpt_x, y2=chkpt_y)
+                (chkpt_x, chkpt_y) = GameEnv.List_Chkpts[GameEnv.next_chkpt(chkpt_index)]
+            else:
+                score = score - dist
+                 
         return score
 
     def calc_fitness(self, population, pod):
@@ -431,7 +427,7 @@ class GA_Controller:
             fitness = self.calc_fitness(population=population, pod=pod)
             population = self.survivor_selection(population=population, fitness=fitness)            
             population = self.crossover(population=population)            
-        return self.conv_genome_to_actions(genome=[self.alpha[0]])
+        return self.conv_genome_to_actions(genome=[self.alpha[0]])[0]
 
     def conv_genome_to_actions(self, genome: list):
         actions = []
@@ -443,16 +439,44 @@ class GA_Controller:
             actions.append([yaw_angle, engine_power])
         return actions
 
+class BruteForceControler:
+    def __init__(self):
+        pass
+
+    def main(self, pod: Pod, chkpt_x, chkpt_y):
+        global StartTime
+        chkpt_index = GameEnv.find_chkpt(x=chkpt_x, y=chkpt_y)
+        score_estimator = GA_Controller()
+        best_score = score_estimator.Death_Score
+        best_action = [0, 100]        
+        angles = [0, -18, 18, -6, 6, -12, 12]
+        powers = [100, 75]
+        
+        for angle in angles:
+            for power in powers:
+                if timeit.default_timer() - StartTime > GameEnv.Max_Computing_Time:
+                    return best_action
+                actions = [ [angle, power],
+                            [angle, power],                            
+                            [angle, power] ]
+                list_pos = Simulation.predict_pos(pod=pod, actions=actions)
+                score = score_estimator.calc_score(list_pos=list_pos, chkpt_index=chkpt_index)
+                
+                if score > best_score:                    
+                    best_score = score
+                    best_action = actions[0]
+        return best_action
+
 def main():
     player = Pod()
     opponent = Pod()
-    controller = GA_Controller()
+    controller = BruteForceControler()
 
     global GameTurn
     global StartTime   
     
     GameTurn = 0
-
+    boost_used = False
     # game loop
     while True:
         
@@ -463,7 +487,7 @@ def main():
         # next_checkpoint_angle: angle between your pod angle_to_chkpt and the direction of the next checkpoint
         x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in input().split()]
         opponent_x, opponent_y = [int(i) for i in input().split()]
-        StartTime = timeit.default_timer()
+        StartTime = timeit.default_timer()        
 
         GameEnv.add_chkpt(x=next_checkpoint_x, y=next_checkpoint_y)        
 
@@ -473,12 +497,16 @@ def main():
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
         
-        [[yaw_angle, engine_power]] = controller.main(pod=player)
+        [yaw_angle, engine_power] = controller.main(pod=player, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
         player.pilot(yaw_angle=yaw_angle, engine_power=engine_power)
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
         # i.e.: "x y engine_power"
-        print(f"{player.next_direction} {player.engine_power}")
+        if not boost_used and next_checkpoint_angle == 0 and player.chkpt_dir.length > 5000:
+            print(f"{player.next_direction} BOOST")
+            boost_used = True
+        else:
+            print(f"{player.next_direction} {player.engine_power}")
 
 main()
