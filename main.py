@@ -11,6 +11,7 @@ class Config:
     Unit_Length = 1000
 
 class GameEnv:
+    Max_Speed = 650
     Max_Yaw_Angle = 18
     Max_Engine_Power = 100
     Map_Width = 16000
@@ -450,14 +451,15 @@ class BruteForceControler:
         best_score = score_estimator.Death_Score
         best_action = [0, 100]        
         angles = [0, -18, 18, -6, 6, -12, 12]
-        powers = [100, 75]
+        powers = [100, 50]        
         
         for angle in angles:
             for power in powers:
                 if timeit.default_timer() - StartTime > GameEnv.Max_Computing_Time:
                     return best_action
                 actions = [ [angle, power],
-                            [angle, power],                            
+                            [angle, power],
+                            [angle, power],
                             [angle, power] ]
                 list_pos = Simulation.predict_pos(pod=pod, actions=actions)
                 score = score_estimator.calc_score(list_pos=list_pos, chkpt_index=chkpt_index)
@@ -503,9 +505,11 @@ def main():
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
         # i.e.: "x y engine_power"
-        if not boost_used and next_checkpoint_angle == 0 and player.chkpt_dir.length > 5000:
+        if not boost_used and player.velocity.length < GameEnv.Max_Speed // 2 and abs(next_checkpoint_angle) < 10 and player.chkpt_dir.length > 6500:
             print(f"{player.next_direction} BOOST")
             boost_used = True
+        elif player.chkpt_dir.length > 3000:
+            print(f"{next_checkpoint_x} {next_checkpoint_y} {GameEnv.Max_Engine_Power}")
         else:
             print(f"{player.next_direction} {player.engine_power}")
 
