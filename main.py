@@ -454,21 +454,24 @@ class HeuristicSearchControler:
 
         next_checkpoint_angle = abs(pod.orient.angle - pod.chkpt_dir.angle)
         
-        if Lap == 3 and not boost_used and abs(next_checkpoint_angle) < 5:       
+        if Lap == 3 and not boost_used and abs(next_checkpoint_angle) < 1:       
             
             if Last_Checkpoint:
                 return chkpt_x, chkpt_y, "BOOST"
 
             if pod.velocity.length < GameEnv.Max_Speed * 0.8 and pod.chkpt_dir.length > 10000:
                 boost_used = True
-                return chkpt_x, chkpt_y, "BOOST"
-            
+                return chkpt_x, chkpt_y, "BOOST"                
+
+        if Last_Checkpoint:
+            return chkpt_x, chkpt_y, 100                
+
         if pod.chkpt_dir.length > 4000:
             return chkpt_x, chkpt_y, GameEnv.Max_Engine_Power
 
-        if pod.chkpt_dir.length < 800:
-            return chkpt_x, chkpt_y, 50
-
+        if pod.chkpt_dir.length < 1000:
+            if next_checkpoint_angle > 45 and pod.velocity.length > GameEnv.Max_Speed * 0.5:
+                return chkpt_x, chkpt_y, 0
 
         global StartTime
         chkpt_index = GameEnv.find_chkpt(x=chkpt_x, y=chkpt_y)
