@@ -7,6 +7,7 @@ import timeit
 GameTurn = 0
 StartTime = 0
 boost_used = False
+Last_Checkpoint = False
 
 class Config:
     Unit_Length = 1000
@@ -17,7 +18,7 @@ class GameEnv:
     Max_Engine_Power = 100
     Map_Width = 16000
     Map_Height = 9000
-    Max_Computing_Time = 0.065 # seconds
+    Max_Computing_Time = 0.070 # seconds
     Chkpt_Radius = 600
     List_Chkpts = []
 
@@ -34,7 +35,7 @@ class GameEnv:
         for i in range(0, len(chkpts)):
             if chkpts[i][0] == x and chkpts[i][1] == y:
                 return i
-        return IndexError
+        return None
 
     @staticmethod
     def next_chkpt(index):
@@ -443,19 +444,26 @@ class GA_Controller:
             actions.append([yaw_angle, engine_power])
         return actions
 
-class BruteForceControler:
+class HeuristicSearchControler:
     def __init__(self):
         pass
 
-    def main(self, pod: Pod, chkpt_x, chkpt_y):
-        global boost_used
+    def main(self, pod: Pod, chkpt_x, chkpt_y, Lap):
+        global Last_Checkpoint
+        global boost_used        
 
-        if not boost_used:
-            if pod.velocity.length < GameEnv.Max_Speed // 2 and abs(pod.chkpt_dir.angle) < 10 and pod.chkpt_dir.length > 6500:
+        next_checkpoint_angle = abs(pod.orient.angle - pod.chkpt_dir.angle)
+        
+        if Lap == 3 and not boost_used and abs(next_checkpoint_angle) < 5:       
+            
+            if Last_Checkpoint:
+                return chkpt_x, chkpt_y, "BOOST"
+
+            if pod.velocity.length < GameEnv.Max_Speed * 0.8 and pod.chkpt_dir.length > 10000:
                 boost_used = True
                 return chkpt_x, chkpt_y, "BOOST"
             
-        if pod.chkpt_dir.length > 3000:
+        if pod.chkpt_dir.length > 4000:
             return chkpt_x, chkpt_y, GameEnv.Max_Engine_Power
 
         global StartTime
@@ -463,17 +471,24 @@ class BruteForceControler:
         score_estimator = GA_Controller()
         best_score = score_estimator.Death_Score
         best_action = [0, 100]        
-        angles = [0, -18, 18, -6, 6, -12, 12]
-        powers = [100, 50]        
+        angles = [-18, 18, 0, -6, 6, -12, 12]
+        powers = [0, 50, 100]        
         
         for angle in angles:
             for power in powers:
                 if timeit.default_timer() - StartTime > GameEnv.Max_Computing_Time:
                     return best_action
-                actions = [ [angle, power],
-                            [angle, power],
-                            [angle, power],
-                            [angle, power] ]
+
+                if pod.velocity.length < 0.25 * GameEnv.Max_Speed and power < 50:
+                    continue
+                
+                actions = [ [angle, power] ]
+
+                if Lap > 1:
+                    actions *= 4
+                else:
+                    actions *= 2
+                            
                 list_pos = Simulation.predict_pos(pod=pod, actions=actions)
                 score = score_estimator.calc_score(list_pos=list_pos, chkpt_index=chkpt_index)
                 
@@ -487,13 +502,19 @@ class BruteForceControler:
 def main():
     player = Pod()
     opponent = Pod()
-    controller = BruteForceControler()
+    controller = HeuristicSearchControler()
 
     global GameTurn
     global StartTime   
     
     GameTurn = 0
-    
+    Lap = 1
+
+    prev_checkpoint_x = -1
+    prev_checkpoint_y = -1
+
+    global Last_Checkpoint
+
     # game loop
     while True:
         
@@ -506,7 +527,18 @@ def main():
         opponent_x, opponent_y = [int(i) for i in input().split()]
         StartTime = timeit.default_timer()        
 
-        GameEnv.add_chkpt(x=next_checkpoint_x, y=next_checkpoint_y)        
+        if prev_checkpoint_x != next_checkpoint_x or prev_checkpoint_y != next_checkpoint_y:
+            prev_checkpoint_x = next_checkpoint_x
+            prev_checkpoint_y = next_checkpoint_y
+            found = GameEnv.find_chkpt(x=next_checkpoint_x, y=next_checkpoint_y)
+            
+            if found == None:
+                GameEnv.add_chkpt(x=next_checkpoint_x, y=next_checkpoint_y)        
+            elif found == 0:
+                Lap += 1
+            elif found == len(GameEnv.List_Chkpts) - 1 and Lap == 3:                
+                Last_Checkpoint = True
+            
 
         # the game angle is opposite of our convention
         next_checkpoint_angle = -next_checkpoint_angle
@@ -514,11 +546,12 @@ def main():
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
         
-        [next_x, next_y, engine_power] = controller.main(pod=player, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)        
+        [next_x, next_y, engine_power] = controller.main(pod=player, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, Lap=Lap)        
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
         # i.e.: "x y engine_power"
-        print(f"{next_x} {next_y} {engine_power}")
-
+        print(f"{next_x} {next_y} {engine_power}")       
+        
+        
 main()
