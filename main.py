@@ -6,6 +6,7 @@ import timeit
 
 GameTurn = 0
 StartTime = 0
+boost_used = False
 
 class Config:
     Unit_Length = 1000
@@ -428,7 +429,9 @@ class GA_Controller:
             fitness = self.calc_fitness(population=population, pod=pod)
             population = self.survivor_selection(population=population, fitness=fitness)            
             population = self.crossover(population=population)            
-        return self.conv_genome_to_actions(genome=[self.alpha[0]])[0]
+        (yaw_angle, engine_power) = self.conv_genome_to_actions(genome=[self.alpha[0]])[0]
+        pod.pilot(yaw_angle=yaw_angle, engine_power=engine_power)
+        return pod.next_direction.x, pod.next_direction.y, pod.engine_power
 
     def conv_genome_to_actions(self, genome: list):
         actions = []
@@ -445,6 +448,16 @@ class BruteForceControler:
         pass
 
     def main(self, pod: Pod, chkpt_x, chkpt_y):
+        global boost_used
+
+        if not boost_used:
+            if pod.velocity.length < GameEnv.Max_Speed // 2 and abs(pod.chkpt_dir.angle) < 10 and pod.chkpt_dir.length > 6500:
+                boost_used = True
+                return chkpt_x, chkpt_y, "BOOST"
+            
+        if pod.chkpt_dir.length > 3000:
+            return chkpt_x, chkpt_y, GameEnv.Max_Engine_Power
+
         global StartTime
         chkpt_index = GameEnv.find_chkpt(x=chkpt_x, y=chkpt_y)
         score_estimator = GA_Controller()
@@ -467,7 +480,9 @@ class BruteForceControler:
                 if score > best_score:                    
                     best_score = score
                     best_action = actions[0]
-        return best_action
+
+        pod.pilot(yaw_angle = best_action[0], engine_power=best_action[1])
+        return pod.next_direction.x, pod.next_direction.y, pod.engine_power
 
 def main():
     player = Pod()
@@ -478,7 +493,7 @@ def main():
     global StartTime   
     
     GameTurn = 0
-    boost_used = False
+    
     # game loop
     while True:
         
@@ -499,18 +514,11 @@ def main():
         player.update(x=x, y=y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y, chkpt_angle=next_checkpoint_angle)
         opponent.update(x=opponent_x, y=opponent_y, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
         
-        [yaw_angle, engine_power] = controller.main(pod=player, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)
-        player.pilot(yaw_angle=yaw_angle, engine_power=engine_power)
+        [next_x, next_y, engine_power] = controller.main(pod=player, chkpt_x=next_checkpoint_x, chkpt_y=next_checkpoint_y)        
 
         # You have to output the target position
         # followed by the engine_power (0 <= engine_power <= 100)
         # i.e.: "x y engine_power"
-        if not boost_used and player.velocity.length < GameEnv.Max_Speed // 2 and abs(next_checkpoint_angle) < 10 and player.chkpt_dir.length > 6500:
-            print(f"{player.next_direction} BOOST")
-            boost_used = True
-        elif player.chkpt_dir.length > 3000:
-            print(f"{next_checkpoint_x} {next_checkpoint_y} {GameEnv.Max_Engine_Power}")
-        else:
-            print(f"{player.next_direction} {player.engine_power}")
+        print(f"{next_x} {next_y} {engine_power}")
 
 main()
