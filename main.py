@@ -466,6 +466,10 @@ class HeuristicSearchControler:
         if pod.chkpt_dir.length > 4000:
             return chkpt_x, chkpt_y, GameEnv.Max_Engine_Power
 
+        if pod.chkpt_dir.length < 800:
+            return chkpt_x, chkpt_y, 50
+
+
         global StartTime
         chkpt_index = GameEnv.find_chkpt(x=chkpt_x, y=chkpt_y)
         score_estimator = GA_Controller()
